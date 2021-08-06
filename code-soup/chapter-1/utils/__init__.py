@@ -1,1 +1,1 @@
-from Visualization import *
+from .Visualization import *

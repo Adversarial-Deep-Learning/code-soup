@@ -16,4 +16,5 @@ class Generator(nn.Module):
         )
 
     def forward(self, x):
-        return self.main(x).view(-1, 1, 28, 28)
+        output = self.main(x)
+        return output.view(-1, 1, 28, 28)

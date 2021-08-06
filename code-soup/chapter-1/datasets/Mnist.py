@@ -10,7 +10,7 @@ class Mnist(Dataset):
         )
 
     def __len__(self):
-        return len(self.landmarks_frame)
+        return len(self.train_data)
 
     def __getitem__(self, idx):
         return self.train_data.__getitem__(idx)

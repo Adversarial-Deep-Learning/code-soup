@@ -1,5 +1,7 @@
 from datasets import Mnist
 from models import Generator, Discriminator
+from utils import visualize_progression, visualize_loss
+import torchvision.transforms as transforms
 import torchvision.utils as vutils
 import torch.optim as optim
 import torch
@@ -20,7 +22,7 @@ parser.add_argument(
     type=int,
     action="store",
     help="Specifies size of latent vectors for generating noise",
-    default=784,
+    default=128,
 )
 parser.add_argument(
     "--learning_rate",
@@ -37,7 +39,7 @@ parser.add_argument(
     default=200,
 )
 args = parser.parse_args()
-batch_size = args.batch_size
+dataloader_batch_size = args.batch_size
 latent_dims = args.latent_dims
 lr = args.learning_rate
 epochs = args.epochs
@@ -45,9 +47,15 @@ epochs = args.epochs
 
 def train_mnist_gan():
     # Loading the dataset
-    dataset = Mnist()
+    transform = transforms.Compose(
+        [
+            transforms.ToTensor(),
+            transforms.Normalize((0.5,), (0.5,)),
+        ]
+    )
+    dataset = Mnist(transform=transform)
     dataloader = torch.utils.data.DataLoader(
-        dataset, batch_size=batch_size, shuffle=True
+        dataset, batch_size=dataloader_batch_size, shuffle=True
     )
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -63,7 +71,7 @@ def train_mnist_gan():
     criterion = torch.nn.BCELoss()
 
     # Create batch of latent vectors that we will use to visualize
-    fixed_noise = torch.randn(64, latent_dims, 1, 1, device=device)
+    fixed_noise = torch.randn(64, latent_dims, device=device)
 
     # Establish convention for real and fake labels during training
     real_label = 1.0
@@ -78,7 +86,9 @@ def train_mnist_gan():
     for epoch in range(epochs):
         for i, data in enumerate(dataloader, 0):
             discriminator.zero_grad()
-            real_image = data.to(device)
+            real_image, _ = data
+            real_image = real_image.to(device)
+            batch_size = real_image.shape[0]
             label = torch.full(
                 (batch_size,), real_label, dtype=torch.float, device=device
             )
@@ -89,10 +99,9 @@ def train_mnist_gan():
             errD_real.backward()
 
             D_x = output.mean().item()
-
             ## Train with all-fake batch
             # Generate batch of latent vectors
-            noise = torch.randn(batch_size, latent_dims, 1, 1, device=device)
+            noise = torch.randn(batch_size, latent_dims, device=device)
             # Generate fake image batch with G
             fake = generator(noise)
             label.fill_(fake_label)
@@ -124,8 +133,8 @@ def train_mnist_gan():
                 print(
                     "[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f / %.4f"
                     % (
-                        epoch,
-                        epoch,
+                        epoch + 1,
+                        epochs,
                         i,
                         len(dataloader),
                         errD.item(),
@@ -149,3 +158,9 @@ def train_mnist_gan():
                 img_list.append(vutils.make_grid(fake, padding=2, normalize=True))
 
             iters += 1
+    visualize_progression(img_list)
+    visualize_loss(G_losses, D_losses)
+
+
+if __name__ == "__main__":
+    train_mnist_gan()

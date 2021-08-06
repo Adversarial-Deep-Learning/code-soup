@@ -11,7 +11,9 @@ def visualize_progression(img_list):
     ani = animation.ArtistAnimation(
         fig, ims, interval=1000, repeat_delay=1000, blit=True
     )
-    HTML(ani.to_jshtml())
+    html = HTML(ani.to_jshtml())
+    with open("mnist_gan_progression.html", "w") as f:
+        f.write(html)
 
 
 def visualize_loss(G_losses, D_losses):
@@ -22,4 +24,4 @@ def visualize_loss(G_losses, D_losses):
     plt.xlabel("iterations")
     plt.ylabel("Loss")
     plt.legend()
-    plt.show()
+    plt.savefig("mnist_losses.png")
