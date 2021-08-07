@@ -7,13 +7,15 @@ from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 
-from code_soup.ch5.datasets import *
+from code_soup.ch5.datasets import MnistDataset
 
 
 class TestMnistDataset(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        mnist_dataset = Mnist(transform=transforms.Compose([transforms.ToTensor()]))
+        mnist_dataset = MnistDataset(
+            transform=transforms.Compose([transforms.ToTensor()])
+        )
         mnist_dataloader = DataLoader(mnist_dataset, batch_size=64, shuffle=False)
         cls.samples = next(iter(mnist_dataloader))
 

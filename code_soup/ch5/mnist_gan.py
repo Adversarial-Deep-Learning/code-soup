@@ -5,7 +5,7 @@ import torch.optim as optim
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 
-from code_soup.ch5.datasets import Mnist
+from code_soup.ch5.datasets import MnistDataset
 from code_soup.ch5.models import Discriminator, Generator
 
 parser = argparse.ArgumentParser(
@@ -54,7 +54,7 @@ def train_mnist_gan():
             transforms.Normalize((0.5,), (0.5,)),
         ]
     )
-    dataset = Mnist(transform=transform)
+    dataset = MnistDataset(transform=transform)
     dataloader = torch.utils.data.DataLoader(
         dataset, batch_size=dataloader_batch_size, shuffle=True
     )

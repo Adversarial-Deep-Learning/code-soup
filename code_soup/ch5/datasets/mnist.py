@@ -2,7 +2,7 @@ import torchvision.datasets as datasets
 from torch.utils.data import Dataset
 
 
-class Mnist(Dataset):
+class MnistDataset(Dataset):
     def __init__(self, transform=None):
 
         self.train_data = datasets.MNIST(

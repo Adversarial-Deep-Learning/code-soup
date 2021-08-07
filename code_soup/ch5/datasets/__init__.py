@@ -1,1 +1,1 @@
-from code_soup.ch5.mnist import Mnist
+from code_soup.ch5.datasets.mnist import MnistDataset
