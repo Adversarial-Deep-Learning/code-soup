@@ -24,10 +24,4 @@ jobs:
         pytest --cov=./code-soup --cov-report=xml
 
     - name: Code Coverage Report
-      uses: codecov/codecov-action@v1
-      if: always()
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        fail_ci_if_error: false
-        file: coverage.xml
-        env_vars: OS,PYTHON
+      uses: codecov/codecov-action@v2
