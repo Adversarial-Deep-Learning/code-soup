@@ -1,1 +1,2 @@
-from tests.test_ch5.test_dummy import test_add_nums
+from tests.test_ch5.test_datasets import TestMnistDataset
+from tests.test_ch5.test_models import TestDiscriminatorModel, TestGeneratorModel

@@ -1,7 +1,9 @@
+import unittest
+
 import torch
 import torch.nn as nn
-import unittest
-from code_soup.chapter_5.models import Discriminator
+
+from code_soup.ch5.models import Discriminator
 
 
 class TestDiscriminatorModel(unittest.TestCase):

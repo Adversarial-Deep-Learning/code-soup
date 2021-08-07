@@ -1,7 +1,9 @@
 import unittest
-import torch.nn as nn
+
 import torch
-from code_soup.chapter_5.models import Generator
+import torch.nn as nn
+
+from code_soup.ch5.models import Generator
 
 
 class TestGeneratorModel(unittest.TestCase):
