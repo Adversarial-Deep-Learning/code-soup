@@ -1,6 +1,5 @@
 from datasets import Mnist
 from models import Generator, Discriminator
-from utils import visualize_progression, visualize_loss
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 import torch.optim as optim
@@ -77,12 +76,6 @@ def train_mnist_gan():
     real_label = 1.0
     fake_label = 0.0
 
-    # Lists that will help us visualize GAN outputs & losses
-    img_list = []
-    G_losses = []
-    D_losses = []
-    iters = 0
-
     for epoch in range(epochs):
         for i, data in enumerate(dataloader, 0):
             discriminator.zero_grad()
@@ -144,23 +137,9 @@ def train_mnist_gan():
                         D_G_z2,
                     )
                 )
-
-            # Save Losses for plotting later
-            G_losses.append(errG.item())
-            D_losses.append(errD.item())
-
-            # Check how the generator is doing by saving G's output on fixed_noise
-            if (iters % 500 == 0) or (
-                (epoch == epoch - 1) and (i == len(dataloader) - 1)
-            ):
-                with torch.no_grad():
-                    fake = generator(fixed_noise).detach().cpu()
-                img_list.append(vutils.make_grid(fake, padding=2, normalize=True))
-
-            iters += 1
-    visualize_progression(img_list)
-    visualize_loss(G_losses, D_losses)
-
+        #save model weights
+        torch.save(discriminator.state_dict(), "./discriminator.pth")
+        torch.save(generator.state_dict(), "./generator.pth")
 
 if __name__ == "__main__":
     train_mnist_gan()

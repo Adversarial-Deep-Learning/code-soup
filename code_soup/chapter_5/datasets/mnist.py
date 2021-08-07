@@ -6,7 +6,7 @@ class Mnist(Dataset):
     def __init__(self, transform=None):
 
         self.train_data = datasets.MNIST(
-            root="../input/data", train=True, download=True, transform=transform
+            root="./input/data", train=True, download=True, transform=transform
         )
 
     def __len__(self):
