@@ -2,11 +2,12 @@ import unittest
 from pathlib import Path
 
 import torch
+import torchvision.datasets as datasets
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
-import torchvision.datasets as datasets
-from code_soup.chapter_5.datasets import *
+
+from code_soup.ch5.datasets import *
 
 
 class TestMnistDataset(unittest.TestCase):

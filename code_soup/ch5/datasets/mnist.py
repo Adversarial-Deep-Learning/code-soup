@@ -1,5 +1,5 @@
-from torch.utils.data import Dataset
 import torchvision.datasets as datasets
+from torch.utils.data import Dataset
 
 
 class Mnist(Dataset):

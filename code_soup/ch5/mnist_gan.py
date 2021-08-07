@@ -1,10 +1,12 @@
-from datasets import Mnist
-from models import Generator, Discriminator
+import argparse
+
+import torch
+import torch.optim as optim
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
-import torch.optim as optim
-import torch
-import argparse
+
+from code_soup.ch5.datasets import Mnist
+from code_soup.ch5.models import Discriminator, Generator
 
 parser = argparse.ArgumentParser(
     prog="mnist_gan.py", description="Train an MNIST GAN model"
@@ -92,7 +94,7 @@ def train_mnist_gan():
             errD_real.backward()
 
             D_x = output.mean().item()
-            ## Train with all-fake batch
+            # Train with all-fake batch
             # Generate batch of latent vectors
             noise = torch.randn(batch_size, latent_dims, device=device)
             # Generate fake image batch with G
@@ -137,9 +139,10 @@ def train_mnist_gan():
                         D_G_z2,
                     )
                 )
-        #save model weights
+        # save model weights
         torch.save(discriminator.state_dict(), "./discriminator.pth")
         torch.save(generator.state_dict(), "./generator.pth")
+
 
 if __name__ == "__main__":
     train_mnist_gan()
