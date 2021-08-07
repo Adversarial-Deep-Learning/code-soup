@@ -1,4 +1,4 @@
-from codesoup.ch5.dummy import add_nums
+from code_soup.ch5.dummy import add_nums
 
 
 def test_add_nums():

@@ -35,7 +35,7 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Tests
-        run: pytest --cov-report xml --cov='./codesoup/'
+        run: pytest --cov-report xml --cov='./code_soup/'
 
       - name: Code Coverage Report
         uses: codecov/codecov-action@v1
