@@ -1,0 +1,2 @@
+from .discriminator_test import TestDiscriminatorModel
+from .generator_test import TestGeneratorModel
