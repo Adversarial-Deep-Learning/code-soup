@@ -16,7 +16,9 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.8]
-
+    concurrency: 
+      group: ${{ github.head_ref }}
+      cancel-in-progress: true
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
