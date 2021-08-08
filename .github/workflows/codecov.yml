@@ -9,7 +9,9 @@ on:
 jobs:
   coverage:
     runs-on: ubuntu-latest
-
+    concurrency:
+      group: ${{ github.head_ref }}
+      cancel-in-progress: true
     steps:
       # Caching Linux
       - uses: actions/cache@v2
