@@ -8,45 +8,45 @@ import torchvision.utils as vutils
 from code_soup.ch5.datasets import MnistDataset
 from code_soup.ch5.models import Discriminator, Generator
 
-parser = argparse.ArgumentParser(
-    prog="mnist_gan.py", description="Train an MNIST GAN model"
-)
-parser.add_argument(
-    "--batch_size",
-    type=int,
-    action="store",
-    help="Specifies batch size of the GAN Trainer",
-    default=64,
-)
-parser.add_argument(
-    "--latent_dims",
-    type=int,
-    action="store",
-    help="Specifies size of latent vectors for generating noise",
-    default=128,
-)
-parser.add_argument(
-    "--learning_rate",
-    type=int,
-    action="store",
-    help="Specifies learning rate for training",
-    default=0.0002,
-)
-parser.add_argument(
-    "--epochs",
-    type=int,
-    action="store",
-    help="Specifies learning rate for training",
-    default=200,
-)
-args = parser.parse_args()
-dataloader_batch_size = args.batch_size
-latent_dims = args.latent_dims
-lr = args.learning_rate
-epochs = args.epochs
+if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser(
+        prog="mnist_gan.py", description="Train an MNIST GAN model"
+    )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        action="store",
+        help="Specifies batch size of the GAN Trainer",
+        default=64,
+    )
+    parser.add_argument(
+        "--latent_dims",
+        type=int,
+        action="store",
+        help="Specifies size of latent vectors for generating noise",
+        default=128,
+    )
+    parser.add_argument(
+        "--learning_rate",
+        type=int,
+        action="store",
+        help="Specifies learning rate for training",
+        default=0.0002,
+    )
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        action="store",
+        help="Specifies learning rate for training",
+        default=200,
+    )
+    args = parser.parse_args()
+    dataloader_batch_size = args.batch_size
+    latent_dims = args.latent_dims
+    lr = args.learning_rate
+    epochs = args.epochs
 
-def train_mnist_gan():
     # Loading the dataset
     transform = transforms.Compose(
         [
@@ -142,7 +142,3 @@ def train_mnist_gan():
         # save model weights
         torch.save(discriminator.state_dict(), "./discriminator.pth")
         torch.save(generator.state_dict(), "./generator.pth")
-
-
-if __name__ == "__main__":
-    train_mnist_gan()
