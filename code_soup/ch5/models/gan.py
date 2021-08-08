@@ -47,7 +47,7 @@ class Discriminator(nn.Module):
         return self.main(x)
 
 
-class GAN:
+class GAN:  # pragma: no cover
     def __init__(self, latent_dims, io_size, device, lr):
         self.latent_dims = latent_dims
         self.io_size = io_size
