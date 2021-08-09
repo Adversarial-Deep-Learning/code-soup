@@ -4,30 +4,35 @@ import torch.optim as optim
 
 
 class Generator(nn.Module):
-    def __init__(self, input_dims, output_dims, lr):
+    def __init__(self, image_size, channels, latent_dims, lr):
         super(Generator, self).__init__()
+        self.image_size = image_size
+        self.channels = channels
+        self.latent_dims = latent_dims
         self.main = nn.Sequential(
-            nn.Linear(input_dims, 256),
+            nn.Linear(self.latent_dims, 256),
             nn.LeakyReLU(0.2),
             nn.Linear(256, 512),
             nn.LeakyReLU(0.2),
             nn.Linear(512, 1024),
             nn.LeakyReLU(0.2),
-            nn.Linear(1024, output_dims),
+            nn.Linear(1024, self.image_size * self.image_size * self.channels),
             nn.Tanh(),
         )
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
 
     def forward(self, x):
         output = self.main(x)
-        return output.view(-1, 1, 28, 28)
+        return output.view(-1, self.channels, self.image_size, self.image_size)
 
 
 class Discriminator(nn.Module):
-    def __init__(self, input_dims, lr):
+    def __init__(self, image_size, channels, lr):
         super(Discriminator, self).__init__()
+        self.image_size = image_size
+        self.channels = channels
         self.main = nn.Sequential(
-            nn.Linear(input_dims, 1024),
+            nn.Linear(self.image_size * self.image_size * self.channels, 1024),
             nn.LeakyReLU(0.2),
             nn.Dropout(0.3),
             nn.Linear(1024, 512),
@@ -39,25 +44,25 @@ class Discriminator(nn.Module):
             nn.Linear(256, 1),
             nn.Sigmoid(),
         )
-        self.input_dims = input_dims
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
 
     def forward(self, x):
-        x = x.view(-1, self.input_dims)
+        x = x.view(-1, self.image_size * self.image_size * self.channels)
         return self.main(x)
 
 
-class GAN:  # pragma: no cover
-    def __init__(self, latent_dims, io_size, device, lr):
+class GAN:
+    def __init__(self, image_size, channels, latent_dims, device, lr):
+        self.image_size = image_size
+        self.channels = channels
         self.latent_dims = latent_dims
-        self.io_size = io_size
         self.device = device
-        self.generator = Generator(latent_dims, io_size, lr).to(device)
-        self.discriminator = Discriminator(io_size, lr).to(device)
+        self.generator = Generator(image_size, channels, latent_dims, lr).to(device)
+        self.discriminator = Discriminator(image_size, channels, lr).to(device)
         self.criterion = torch.nn.BCELoss()
         self.real_label, self.fake_label = 1.0, 0.0
 
-    def step(self, i, data):
+    def step(self, data):
         real_image, _ = data
         real_image = real_image.to(self.device)
         batch_size = real_image.shape[0]
