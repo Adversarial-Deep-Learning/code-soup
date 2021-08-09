@@ -6,7 +6,7 @@ import torchvision.transforms as transforms
 import torchvision.utils as vutils
 
 from code_soup.ch5.datasets import MnistDataset
-from code_soup.ch5.models import Discriminator, Generator
+from code_soup.ch5.models import GAN
 
 if __name__ == "__main__":
 
@@ -60,85 +60,10 @@ if __name__ == "__main__":
     )
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Initializing the models
-    generator = Generator(latent_dims).to(device)
-    discriminator = Discriminator(784).to(device)
-
-    # Initializing the optimizers
-    optimizerD = optim.Adam(discriminator.parameters(), lr=lr)
-    optimizerG = optim.Adam(generator.parameters(), lr=lr)
-
-    # Defining Loss function
-    criterion = torch.nn.BCELoss()
-
-    # Create batch of latent vectors that we will use to visualize
-    fixed_noise = torch.randn(64, latent_dims, device=device)
-
-    # Establish convention for real and fake labels during training
-    real_label = 1.0
-    fake_label = 0.0
+    gan = GAN(latent_dims, 784, device, 0.0002)
 
     for epoch in range(epochs):
         for i, data in enumerate(dataloader, 0):
-            discriminator.zero_grad()
-            real_image, _ = data
-            real_image = real_image.to(device)
-            batch_size = real_image.shape[0]
-            label = torch.full(
-                (batch_size,), real_label, dtype=torch.float, device=device
-            )
-            # Forward pass real batch through D
-            output = discriminator(real_image).view(-1)
-            # Calculate loss on all-real batch
-            errD_real = criterion(output, label)
-            errD_real.backward()
-
-            D_x = output.mean().item()
-            # Train with all-fake batch
-            # Generate batch of latent vectors
-            noise = torch.randn(batch_size, latent_dims, device=device)
-            # Generate fake image batch with G
-            fake = generator(noise)
-            label.fill_(fake_label)
-            # Classify all fake batch with D
-            output = discriminator(fake.detach()).view(-1)
-            # Calculate D's loss on the all-fake batch
-            errD_fake = criterion(output, label)
-            errD_fake.backward()
-            D_G_z1 = output.mean().item()
-            # Compute error of D as sum over the fake and the real batches
-            errD = errD_real + errD_fake
-            # Update D
-            optimizerD.step()
-
-            generator.zero_grad()
-            label.fill_(real_label)  # fake labels are real for generator cost
-            # Since we just updated D, perform another forward pass of all-fake batch through D
-            output = discriminator(fake).view(-1)
-            # Calculate G's loss based on this output
-            errG = criterion(output, label)
-            # Calculate gradients for G
-            errG.backward()
-            D_G_z2 = output.mean().item()
-            # Update G
-            optimizerG.step()
-
-            # Output training stats
-            if i % 50 == 0:
-                print(
-                    "[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f / %.4f"
-                    % (
-                        epoch + 1,
-                        epochs,
-                        i,
-                        len(dataloader),
-                        errD.item(),
-                        errG.item(),
-                        D_x,
-                        D_G_z1,
-                        D_G_z2,
-                    )
-                )
-        # save model weights
-        torch.save(discriminator.state_dict(), "./discriminator.pth")
-        torch.save(generator.state_dict(), "./generator.pth")
+            D_x, D_G_z1, errD, D_G_z2 = gan.step(i, data)
+            # Implement Logging
+            # Implement Saving
