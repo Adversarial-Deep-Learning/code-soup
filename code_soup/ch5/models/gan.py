@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 
-class Generator(nn.Module):
+class Generator(nn.Module): # pragma: no cover
     def __init__(self, image_size, channels, latent_dims, lr):
         super(Generator, self).__init__()
         self.image_size = image_size
@@ -21,12 +21,12 @@ class Generator(nn.Module):
         )
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
 
-    def forward(self, x):  # pragma: no cover
+    def forward(self, x):
         output = self.main(x)
         return output.view(-1, self.channels, self.image_size, self.image_size)
 
 
-class Discriminator(nn.Module):
+class Discriminator(nn.Module): # pragma: no cover
     def __init__(self, image_size, channels, lr):
         super(Discriminator, self).__init__()
         self.image_size = image_size
@@ -46,12 +46,12 @@ class Discriminator(nn.Module):
         )
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
 
-    def forward(self, x):  # pragma: no cover
+    def forward(self, x):
         x = x.view(-1, self.image_size * self.image_size * self.channels)
         return self.main(x)
 
 
-class GAN:
+class GAN: # pragma: no cover
     def __init__(self, image_size, channels, latent_dims, device, lr):
         self.image_size = image_size
         self.channels = channels
