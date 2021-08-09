@@ -3,7 +3,7 @@ import unittest
 import torch
 import torch.nn as nn
 
-from code_soup.ch5.models.gan import Discriminator, Generator
+from code_soup.ch5.models.gan import Discriminator, Generator, GAN
 
 
 class TestDiscriminatorModel(unittest.TestCase):
@@ -35,3 +35,19 @@ class TestGeneratorModel(unittest.TestCase):
     def test_generator_variable_layer_weights(self):
         self.assertEqual(self.model.main[0].weight.data.shape, torch.Size([256, 128]))
         self.assertEqual(self.model.main[-2].weight.data.shape, torch.Size([784, 1024]))
+
+
+class TestGANModel(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.model = GAN(
+            image_size=28,
+            channels=1,
+            latent_dims=128,
+            device=torch.device("cpu"),
+            lr=0.02,
+        )
+
+    def test_step(self):
+        with self.assertRaises(Exception):
+            self.model.step(torch.randn(4, 28, 28))

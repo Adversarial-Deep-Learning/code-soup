@@ -64,6 +64,6 @@ if __name__ == "__main__":
 
     for epoch in range(epochs):
         for i, data in enumerate(dataloader, 0):
-            D_x, D_G_z1, errD, D_G_z2 = gan.step(i, data)
+            D_x, D_G_z1, errD, D_G_z2 = gan.step(data)
             # Implement Logging
             # Implement Saving

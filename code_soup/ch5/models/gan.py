@@ -21,7 +21,7 @@ class Generator(nn.Module):
         )
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
 
-    def forward(self, x):
+    def forward(self, x):  # pragma: no cover
         output = self.main(x)
         return output.view(-1, self.channels, self.image_size, self.image_size)
 
@@ -46,7 +46,7 @@ class Discriminator(nn.Module):
         )
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
 
-    def forward(self, x):
+    def forward(self, x):  # pragma: no cover
         x = x.view(-1, self.image_size * self.image_size * self.channels)
         return self.main(x)
 
