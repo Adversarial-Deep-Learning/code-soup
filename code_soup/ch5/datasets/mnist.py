@@ -4,10 +4,22 @@ from torch.utils.data import Dataset
 
 class MnistDataset(Dataset):
     """
-    A custom MNIST Dataset Class.
+    `MNIST <http://yann.lecun.com/exdb/mnist/>`_ Dataset. Built using TorchVision Dataset class.
+    Args:
+        root (string): Root directory of dataset where ``MNIST/processed/training.pt``
+            and  ``MNIST/processed/test.pt`` exist.
+        train (bool, optional): If True, creates dataset from ``training.pt``,
+            otherwise from ``test.pt``.
+        download (bool, optional): If true, downloads the dataset from the internet and
+            puts it in root directory. If dataset is already downloaded, it is not
+            downloaded again.
+        transform (callable, optional): A function/transform that  takes in an PIL image
+            and returns a transformed version. E.g, ``transforms.RandomCrop``
+        target_transform (callable, optional): A function/transform that takes in the
+            target and transforms it.
     """
 
-    def __init__(self, transform=None):
+    def __init__(self, transform: callable = None):
         """
         Parameters
         ----------
@@ -19,7 +31,7 @@ class MnistDataset(Dataset):
             root="./input/data", train=True, download=True, transform=transform
         )
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         Returns
         -------
@@ -28,7 +40,7 @@ class MnistDataset(Dataset):
         """
         return len(self.train_data)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> tuple(any, any):
         """
         Returns
         -------

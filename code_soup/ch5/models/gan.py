@@ -1,3 +1,4 @@
+from typing import Tuple
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -12,7 +13,7 @@ class Generator(nn.Module):
         - returns a generated sample
     """
 
-    def __init__(self, input_dims, output_dims, lr):
+    def __init__(self, input_dims: int, output_dims: int, lr: float):
         """
         Parameters
         ----------
@@ -20,6 +21,7 @@ class Generator(nn.Module):
             Number of input dimensions equal to noise vector dimensions
         output_dims : int
             Number of output dimensions
+        lr : float
             Learning rate
         """
         super(Generator, self).__init__()
@@ -35,7 +37,7 @@ class Generator(nn.Module):
         )
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Parameters
         ----------
@@ -59,7 +61,7 @@ class Discriminator(nn.Module):
         - returns a probability that the input is real
     """
 
-    def __init__(self, input_dims, lr):
+    def __init__(self, input_dims: int, lr: float):
         """
         Parameters
         ----------
@@ -85,7 +87,7 @@ class Discriminator(nn.Module):
         self.input_dims = input_dims
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Parameters
         ----------
@@ -102,7 +104,9 @@ class Discriminator(nn.Module):
 
 class GAN:  # pragma: no cover
     """
-    Generative Adversarial Network Model Class
+    Generative Adversarial Network Model Class.
+    Refer to `<https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html>`_ tutorial.
+    `
     Methods
     -------
     step(self, i, data)
@@ -110,7 +114,7 @@ class GAN:  # pragma: no cover
 
     """
 
-    def __init__(self, latent_dims, io_size, device, lr):
+    def __init__(self, latent_dims: int, io_size: int, device: torch.device, lr: float):
         """
         Parameters
         ----------
@@ -131,9 +135,9 @@ class GAN:  # pragma: no cover
         self.criterion = torch.nn.BCELoss()
         self.real_label, self.fake_label = 1.0, 0.0
 
-    def step(self, i, data):
+    def step(self, i: int, data: torch.Tensor) -> tuple:
         """
-        Iterates the model for a single batch of data
+        Iterates the model for a single batch of data, calculates the loss and updates the model parameters.
         Parameters
         ----------
         i : int
