@@ -9,7 +9,7 @@ from code_soup.ch5.models.gan import Discriminator, Generator
 class TestDiscriminatorModel(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.model = Discriminator(28 * 28, lr=0.002)
+        cls.model = Discriminator(image_size=28, channels=1, lr=0.002)
 
     def test_discriminator_output_shape(self):
         input_data = torch.randn(64, 1, 28, 28)
@@ -25,7 +25,7 @@ class TestDiscriminatorModel(unittest.TestCase):
 class TestGeneratorModel(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.model = Generator(128, 784, lr=0.02)
+        cls.model = Generator(image_size=28, channels=1, latent_dims=784, lr=0.02)
 
     def test_generator_output_shape(self):
         input_data = torch.randn(64, 128)
