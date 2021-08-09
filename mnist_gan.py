@@ -60,10 +60,16 @@ if __name__ == "__main__":
     )
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    gan = GAN(latent_dims, 784, device, 0.0002)
+    gan = GAN(
+        image_size=28,
+        channels=1,
+        latent_dims=128,
+        device=torch.device("cpu"),
+        lr=0.02,
+    )
 
     for epoch in range(epochs):
         for i, data in enumerate(dataloader, 0):
-            D_x, D_G_z1, errD, D_G_z2 = gan.step(i, data)
+            D_x, D_G_z1, errD, D_G_z2 = gan.step(data)
             # Implement Logging
             # Implement Saving

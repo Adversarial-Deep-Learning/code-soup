@@ -14,26 +14,31 @@ class Generator(nn.Module):
         - returns a generated sample
     """
 
-    def __init__(self, input_dims: int, output_dims: int, lr: float):
+    def __init__(self, image_size: int, channels: int, latent_dims: int, lr: float):
         """
         Parameters
         ----------
-        input_dims : int
-            Number of input dimensions equal to noise vector dimensions
-        output_dims : int
-            Number of output dimensions
+        image_size : int
+            Number of input dimensions aka side length of image
+        channels: int
+            Number of channels in image
+        latent_dims : int
+            Number of dimensions in the projecting layer
         lr : float
             Learning rate
         """
         super(Generator, self).__init__()
+        self.image_size = image_size
+        self.channels = channels
+        self.latent_dims = latent_dims
         self.main = nn.Sequential(
-            nn.Linear(input_dims, 256),
+            nn.Linear(self.latent_dims, 256),
             nn.LeakyReLU(0.2),
             nn.Linear(256, 512),
             nn.LeakyReLU(0.2),
             nn.Linear(512, 1024),
             nn.LeakyReLU(0.2),
-            nn.Linear(1024, output_dims),
+            nn.Linear(1024, self.image_size * self.image_size * self.channels),
             nn.Tanh(),
         )
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
@@ -50,7 +55,7 @@ class Generator(nn.Module):
             Generated sample
         """
         output = self.main(x)
-        return output.view(-1, 1, 28, 28)
+        return output.view(-1, self.channels, self.image_size, self.image_size)
 
 
 class Discriminator(nn.Module):
@@ -62,18 +67,22 @@ class Discriminator(nn.Module):
         - returns a probability that the input is real
     """
 
-    def __init__(self, input_dims: int, lr: float):
+    def __init__(self, image_size: int, channels: int, lr: float):
         """
         Parameters
         ----------
-        input_dims : int
-            Number of input dimensions
+        image_size : int
+            Number of input dimensions aka side length of image
+        channels: int
+            Number of channels in image
         lr : float
             Learning rate
         """
         super(Discriminator, self).__init__()
+        self.image_size = image_size
+        self.channels = channels
         self.main = nn.Sequential(
-            nn.Linear(input_dims, 1024),
+            nn.Linear(self.image_size * self.image_size * self.channels, 1024),
             nn.LeakyReLU(0.2),
             nn.Dropout(0.3),
             nn.Linear(1024, 512),
@@ -85,10 +94,9 @@ class Discriminator(nn.Module):
             nn.Linear(256, 1),
             nn.Sigmoid(),
         )
-        self.input_dims = input_dims
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x):
         """
         Parameters
         ----------
@@ -99,50 +107,56 @@ class Discriminator(nn.Module):
         output : torch.Tensor
             Probability that the input is real
         """
-        x = x.view(-1, self.input_dims)
+        x = x.view(-1, self.image_size * self.image_size * self.channels)
         return self.main(x)
 
 
-class GAN:  # pragma: no cover
+class GAN:
     """
     Generative Adversarial Network Model Class.
     Refer to the paper for more details: `Generative Adversarial Nets <https://arxiv.org/abs/1406.2661>`_
-
     Methods
     -------
     step(self, i, data)
         Iterates the model for a single batch of data
-
     """
 
-    def __init__(self, latent_dims: int, io_size: int, device: torch.device, lr: float):
+    def __init__(
+        self,
+        image_size: int,
+        channels: int,
+        latent_dims: int,
+        device: torch.device,
+        lr: float,
+    ):
         """
         Parameters
         ----------
+        image_size : int
+            Number of input dimensions aka side length of image
+        channels: int
+            Number of channels in image
         latent_dims : int
-            Number of dimensions in the latent space
-        io_size : int
-            Number of output dimensions
+            Number of dimensions in the projecting layer
         device : torch.device
             Device to run the model on
         lr : float
             Learning rate
         """
+        self.image_size = image_size
+        self.channels = channels
         self.latent_dims = latent_dims
-        self.io_size = io_size
         self.device = device
-        self.generator = Generator(latent_dims, io_size, lr).to(device)
-        self.discriminator = Discriminator(io_size, lr).to(device)
+        self.generator = Generator(image_size, channels, latent_dims, lr).to(device)
+        self.discriminator = Discriminator(image_size, channels, lr).to(device)
         self.criterion = torch.nn.BCELoss()
         self.real_label, self.fake_label = 1.0, 0.0
 
-    def step(self, i: int, data: torch.Tensor) -> Tuple:
+    def step(self, data: torch.Tensor) -> Tuple:
         """
         Iterates the model for a single batch of data, calculates the loss and updates the model parameters.
         Parameters
         ----------
-        i : int
-            Current iteration
         data : torch.Tensor
             Batch of data
         Returns
@@ -155,7 +169,6 @@ class GAN:  # pragma: no cover
             Discriminator loss
          D_G_z2:
             Average discriminator outputs for the all fake batch after updating discriminator
-
         """
         real_image, _ = data
         real_image = real_image.to(self.device)
