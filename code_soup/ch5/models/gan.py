@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 
-class Generator(nn.Module):  # pragma: no cover
+class Generator(nn.Module):
     def __init__(self, image_size, channels, latent_dims, lr):
         super(Generator, self).__init__()
         self.image_size = image_size
@@ -26,7 +26,7 @@ class Generator(nn.Module):  # pragma: no cover
         return output.view(-1, self.channels, self.image_size, self.image_size)
 
 
-class Discriminator(nn.Module):  # pragma: no cover
+class Discriminator(nn.Module):
     def __init__(self, image_size, channels, lr):
         super(Discriminator, self).__init__()
         self.image_size = image_size
@@ -51,7 +51,7 @@ class Discriminator(nn.Module):  # pragma: no cover
         return self.main(x)
 
 
-class GAN:  # pragma: no cover
+class GAN:
     def __init__(self, image_size, channels, latent_dims, device, lr):
         self.image_size = image_size
         self.channels = channels
@@ -62,8 +62,9 @@ class GAN:  # pragma: no cover
         self.criterion = torch.nn.BCELoss()
         self.real_label, self.fake_label = 1.0, 0.0
 
-    def step(self, data):  # pragma: no cover
-        real_image, _ = data.to(self.device)
+    def step(self, data):
+        real_image, _ = data
+        real_image = real_image.to(self.device)
         batch_size = real_image.shape[0]
         label = torch.full(
             (batch_size,), self.real_label, dtype=torch.float, device=self.device

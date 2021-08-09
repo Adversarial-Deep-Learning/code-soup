@@ -49,5 +49,4 @@ class TestGANModel(unittest.TestCase):
         )
 
     def test_step(self):
-        with self.assertRaises(Exception):
-            self.model.step(torch.randn(4, 28, 28))
+        self.model.step([torch.randn(4, 28, 28), torch.ones(4)])
