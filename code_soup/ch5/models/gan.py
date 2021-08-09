@@ -4,7 +4,24 @@ import torch.optim as optim
 
 
 class Generator(nn.Module):
+    """
+    Simple generator network.
+    Methods
+    -------
+    forward(x)
+        - returns a generated sample
+    """
+
     def __init__(self, input_dims, output_dims, lr):
+        """
+        Parameters
+        ----------
+        input_dims : int
+            Number of input dimensions equal to noise vector dimensions
+        output_dims : int
+            Number of output dimensions
+            Learning rate
+        """
         super(Generator, self).__init__()
         self.main = nn.Sequential(
             nn.Linear(input_dims, 256),
@@ -19,12 +36,38 @@ class Generator(nn.Module):
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
 
     def forward(self, x):
+        """
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor
+        Returns
+        -------
+        output : torch.Tensor
+            Generated sample
+        """
         output = self.main(x)
         return output.view(-1, 1, 28, 28)
 
 
 class Discriminator(nn.Module):
+    """
+    Simple discriminator network.
+    Methods
+    -------
+    forward(x)
+        - returns a probability that the input is real
+    """
+
     def __init__(self, input_dims, lr):
+        """
+        Parameters
+        ----------
+        input_dims : int
+            Number of input dimensions
+        lr : float
+            Learning rate
+        """
         super(Discriminator, self).__init__()
         self.main = nn.Sequential(
             nn.Linear(input_dims, 1024),
@@ -43,12 +86,43 @@ class Discriminator(nn.Module):
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
 
     def forward(self, x):
+        """
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor
+        Returns
+        -------
+        output : torch.Tensor
+            Probability that the input is real
+        """
         x = x.view(-1, self.input_dims)
         return self.main(x)
 
 
 class GAN:  # pragma: no cover
+    """
+    Generative Adversarial Network Model Class
+    Methods
+    -------
+    step(self, i, data)
+        Iterates the model for a single batch of data
+
+    """
+
     def __init__(self, latent_dims, io_size, device, lr):
+        """
+        Parameters
+        ----------
+        latent_dims : int
+            Number of dimensions in the latent space
+        io_size : int
+            Number of output dimensions
+        device : torch.device
+            Device to run the model on
+        lr : float
+            Learning rate
+        """
         self.latent_dims = latent_dims
         self.io_size = io_size
         self.device = device
@@ -58,6 +132,26 @@ class GAN:  # pragma: no cover
         self.real_label, self.fake_label = 1.0, 0.0
 
     def step(self, i, data):
+        """
+        Iterates the model for a single batch of data
+        Parameters
+        ----------
+        i : int
+            Current iteration
+        data : torch.Tensor
+            Batch of data
+        Returns
+        -------
+         D_x:
+            The average output (across the batch) of the discriminator for the all real batch
+         D_G_z1:
+           Average discriminator outputs for the all fake batch before updating discriminator
+         errD:
+            Discriminator loss
+         D_G_z2:
+            Average discriminator outputs for the all fake batch after updating discriminator
+
+        """
         real_image, _ = data
         real_image = real_image.to(self.device)
         batch_size = real_image.shape[0]
