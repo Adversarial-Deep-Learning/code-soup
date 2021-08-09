@@ -3,8 +3,7 @@ import unittest
 import torch
 import torch.nn as nn
 
-from code_soup.ch5.models.gan import Generator
-from code_soup.ch5.models.gan import Discriminator
+from code_soup.ch5.models.gan import Discriminator, Generator
 
 
 class TestDiscriminatorModel(unittest.TestCase):
