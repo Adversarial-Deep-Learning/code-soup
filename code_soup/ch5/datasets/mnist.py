@@ -1,3 +1,4 @@
+from typing import Any, Tuple
 import torchvision.datasets as datasets
 from torch.utils.data import Dataset
 
@@ -40,7 +41,7 @@ class MnistDataset(Dataset):
         """
         return len(self.train_data)
 
-    def __getitem__(self, idx: int) -> tuple(any, any):
+    def __getitem__(self, idx: int) -> Tuple[Any, Any]:
         """
         Returns
         -------

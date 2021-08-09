@@ -105,8 +105,8 @@ class Discriminator(nn.Module):
 class GAN:  # pragma: no cover
     """
     Generative Adversarial Network Model Class.
-    Refer to `<https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html>`_ tutorial.
-    `
+    Refer to the paper for more details: `Generative Adversarial Nets <https://arxiv.org/abs/1406.2661>`_
+
     Methods
     -------
     step(self, i, data)
@@ -135,7 +135,7 @@ class GAN:  # pragma: no cover
         self.criterion = torch.nn.BCELoss()
         self.real_label, self.fake_label = 1.0, 0.0
 
-    def step(self, i: int, data: torch.Tensor) -> tuple:
+    def step(self, i: int, data: torch.Tensor) -> Tuple:
         """
         Iterates the model for a single batch of data, calculates the loss and updates the model parameters.
         Parameters
