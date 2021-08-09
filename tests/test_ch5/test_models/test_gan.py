@@ -25,7 +25,7 @@ class TestDiscriminatorModel(unittest.TestCase):
 class TestGeneratorModel(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.model = Generator(image_size=28, channels=1, latent_dims=784, lr=0.02)
+        cls.model = Generator(image_size=28, channels=1, latent_dims=128, lr=0.02)
 
     def test_generator_output_shape(self):
         input_data = torch.randn(64, 128)
