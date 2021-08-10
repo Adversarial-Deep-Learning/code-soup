@@ -7,7 +7,7 @@ from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 
-from code_soup.ch5.datasets import MnistDataset
+from code_soup.common.vision.datasets import MnistDataset
 
 
 class TestMnistDataset(unittest.TestCase):
