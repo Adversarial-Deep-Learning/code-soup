@@ -1,11 +1,12 @@
 # Code Soup Repository Structure
 
 For every algorithm or ingredient of our code soup we have three targets implementation, unit-tests, tutorials. Pertaining to these three we have three folders **code-soup**, **tests**, **Tutorials**
-```python
-.code-soup
-+-- code_soup #main package
-+-- tests #unit-tests
-+-- Tutorials
+
+```bash
+.code-soup/
++-- code_soup/ #main package
++-- tests/ #unit-tests
++-- Tutorials/ #tutorials
 ```
 Each of these follows a book like structure as shown below
 
@@ -21,7 +22,7 @@ Main package to be used in fencing and build attacks / defenses
 |	+-- vision/
 |	|	+-- models/ #Commonly used models for eg GPT-2
 |	|	+-- utils/ #Commonly used utils like accuracy metric etc
-|   |   +-- dataset/ #Datasets used in the chapter
+|	|   +-- dataset/ #Datasets used in the chapter
 |	+-- text/	#Same as above
 |	+-- rl/		#Same as above
 # For every chapter ->
