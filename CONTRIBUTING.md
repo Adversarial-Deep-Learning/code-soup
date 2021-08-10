@@ -33,6 +33,13 @@ If you modify the code, you will most probably also need to code some tests to e
 New code should be compatible with Python 3.X versions. Once you finish implementing a feature or bugfix and tests, 
 please run lint checking and tests:
 
+#### Environment
+To make sure all dependencies are accounted for we recommend to use a different environment, If you have not worked on an environment before tou can check it out here https://realpython.com/python-virtual-environments-a-primer/, you can use the `environment.yml` file or install the dependencies using
+```python
+pip install -r requirements.txt
+```
+In case you have installed a new dependency which is necessary for the issue you are working on (keep in mind we want to keep minimal dependencies) update that in the ```requirements.txt``` file.
+
 #### Formatting Code
 
 To ensure the codebase complies with a style guide, we use [flake8](https://flake8.pycqa.org/en/latest/),
@@ -59,7 +66,7 @@ git add .
 git commit -m "Added awesome feature"
 ```
 
-#### Formatting with pre-commit
+##### Formatting with pre-commit
 
 To automate the process, we have configured the repo with [pre-commit hooks](https://pre-commit.com/) to use black to autoformat the staged files to ensure every commit complies with a style guide. This requires some setup, which is described below:
 
@@ -90,13 +97,13 @@ git commit -m "Added feature"
 
 #### Run tests:
 
-To run a specific test, for example `test_a2c_cnn` from `test_a2c.py`
-```bash
-pytest tests/test_deep/test_agents/test_a2c -vvv -k test_a2c_cnn
-```
 To run all tests with coverage (assuming installed `pytest-cov`):
 ```python
 pytest --cov-report term-missing --cov='./code-soup/' --cov-config=.coveragerc
+```
+To install `pytest-cov`
+```python
+pip install pytest-cov
 ```
 
 #### Send a PR
