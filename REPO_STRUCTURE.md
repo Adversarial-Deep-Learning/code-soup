@@ -1,7 +1,7 @@
 # Code Soup Repository Structure
 
 For every algorithm or ingredient of our code soup we have three targets implementation, unit-tests, tutorials. Pertaining to these three we have three folders **code-soup**, **tests**, **Tutorials**
-```python
+```bash
 .code-soup
 +-- code_soup #main package
 +-- tests #unit-tests
