@@ -99,7 +99,7 @@ git commit -m "Added feature"
 
 To run all tests with coverage (assuming installed `pytest-cov`):
 ```python
-pytest --cov-report term-missing --cov='./code-soup/' --cov-config=.coveragerc
+pytest --cov-report term-missing --cov='./code_soup/' --cov-config=.coveragerc
 ```
 To install `pytest-cov`
 ```python
