@@ -5,8 +5,8 @@ import torch.optim as optim
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 
-from code_soup.ch5.datasets import MnistDataset
 from code_soup.ch5.models import GAN
+from code_soup.common.vision.datasets import MnistDataset
 
 if __name__ == "__main__":
 
