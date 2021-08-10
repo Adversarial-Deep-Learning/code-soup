@@ -65,9 +65,9 @@ Tutorial, Demonstration, Success, and Visualisation for each algorithm.
 # Follows a similar structure
 .code-soup/Tutorial
 # For every chapter ->
-+-- Tutorial_ch{Chapter_Number}
-|	+-- Tutorial_{Name_of_Attack/Defense}/
-|   |   +--{Name_of_Attack/Defense}.ipynb #Main Tutorial Notebbok
++-- ch{Chapter_Number}
+|	+-- {Name_of_Attack/Defense}/
+|   |   +--{Name_of_Attack/Defense}_Tutorial.ipynb #Main Tutorial Notebbok
 |   |   +--config.json #For storing hyper parameters etc
 |   |   +--results.md #(optional) for storing the results obtained
 ```
