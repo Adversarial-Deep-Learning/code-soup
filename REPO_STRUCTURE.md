@@ -21,11 +21,11 @@ Main package to be used in fencing and build attacks / defenses
 |	+-- vision/
 |	|	+-- models/ #Commonly used models for eg GPT-2
 |	|	+-- utils/ #Commonly used utils like accuracy metric etc
+|   |   +-- dataset/ #Datasets used in the chapter
 |	+-- text/	#Same as above
 |	+-- rl/		#Same as above
 # For every chapter ->
 +-- ch{Chapter_Number}/ #Code refering to a particular chapter
-|	+-- dataset/ #Datasets used in the chapter
 |	+-- utils/ #Utils Required for the chapter
 |	+-- models/ #Attackers or Defenders used in the chapter
 |	|	+--{Name_of_Attack/Defense}.py
@@ -46,11 +46,11 @@ For Unit testing of each module in the package
 |	+-- test_vision/
 |	|	+-- test_models/
 |	|	+-- test_utils/
+|   |   +-- test_dataset/
 |	+-- test_text/
 |	+-- test_rl/
 # For every chapter ->
 +-- test_ch{Chapter_Number}/
-|	+-- test_dataset/
 |	+-- test_utils/
 |	+-- test_models/
 |	|	+--test_{Name_of_Attack/Defense}.py
