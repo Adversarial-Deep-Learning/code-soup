@@ -10,11 +10,11 @@ Despite the great success of deep neural networks in a wide range of application
 ## Structure of the project
 When complete, this project will have Python implementations for all the pseudocode algorithms in the book, as well as tests and examples of use.
 
-For each chapter, we have a chapter in code-soup as code-soup/ch{Chaoter_Number} with the set of models, datasets, utils. For each chapter such as GAN, we provide the following files:
+For each chapter, we have a chapter in code-soup as code-soup/ch{Chapter_Number} with the set of models, datasets, utils. For each chapter such as GAN, we provide the following files:
 
 1. gan.ipynb, An ipython Tutorial vis Explanation, Demonstration, and Visualisation of the Algorithm
 2. gan.py, An easy to read implementation of the main algorithm, in the simplest possible way, with the components defined in Classes and an attack iteration in the step function
-3. tests/test_ch{Chaoter_Number}/test_models/test_gan.py: A lightweight test suite, using assert statements, designed for use with pytest, but also usable on their own.
+3. tests/test_ch{Chapter_Number}/test_models/test_gan.py: A lightweight test suite, using assert statements, designed for use with pytest, but also usable on their own.
 
 ## Requirements
 The requirements are stored in `requirements.txt` you can install them using
@@ -27,6 +27,7 @@ We recommend to use a virtual environment, the exported yaml is available at `en
 The tutorial to each algorithm is available in the Tutorials folder.
 
 ## Index
+Index for tutorials and test suite for each algorithm.
 
 ## Contribution
 Please take a look the contribution.md for details, :star: us if you liked the work.
