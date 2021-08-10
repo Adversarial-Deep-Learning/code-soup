@@ -9,6 +9,7 @@ Authors of the book: Adversarial Deep Learning
 Chefs of the Code-Soup
 ----------------------------------------------
 * [Somesh Singh](https://someshsingh22.github.io/)
+* [Abheesht Sharma](https://www.linkedin.com/in/abheesht-sharma-567303156/)
 
 
 Contributors
