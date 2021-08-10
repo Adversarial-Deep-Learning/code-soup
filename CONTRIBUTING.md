@@ -1,6 +1,5 @@
-# Contributing to GenRL
-
-This project is a community effort, and everyone is welcome to contribute! Feel free to join the [Slack Workspace](https://join.slack.com/t/genrlworkspace/shared_invite/zt-gwlgnymd-Pw3TYC~0XDLy6VQDml22zg)
+# Contributing to Code-Soup
+This project is a community effort, and everyone is welcome to contribute! Feel free to join the [Slack Workspace](https://join.slack.com/t/ssoc2021/shared_invite/zt-u4eefbut-aX7TYc1WoQWgylPydivUlg)
 
 If you are interested in contributing to code-soup, there are many ways to help out. Your contributions may fall
 into the following categories:
