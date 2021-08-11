@@ -12,7 +12,7 @@ class MnistDataset(Dataset):
             and returns a transformed version. E.g, ``transforms.RandomCrop``
     """
 
-    def __init__(self, transform: callable = None):
+    def __init__(self, transform: callable = None, train: bool = True):
         """
         Parameters
         ----------
@@ -21,7 +21,7 @@ class MnistDataset(Dataset):
         """
 
         self.train_data = datasets.MNIST(
-            root="./input/data", train=True, download=True, transform=transform
+            root="./input/data", train=train, download=True, transform=transform
         )
 
     def __len__(self) -> int:
