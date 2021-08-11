@@ -26,6 +26,10 @@ class TestMnistDataset(unittest.TestCase):
         self.assertEqual(image_tensor_shape[2], 28)
         self.assertEqual(image_tensor_shape[3], 28)
 
+    def test_test_split(self):
+        mnist_test_split = MnistDataset(train=False)
+        self.assertEqual(len(mnist_test_split), 10000)
+
     def test_image_label_correctness(self):
         image_label = TestMnistDataset.samples[1][0]
         self.assertEqual(image_label, 5)
