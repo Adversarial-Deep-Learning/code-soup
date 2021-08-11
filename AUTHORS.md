@@ -11,6 +11,7 @@ Chefs of the Code-Soup
 * [Somesh Singh](https://someshsingh22.github.io/)
 * [Abheesht Sharma](https://www.linkedin.com/in/abheesht-sharma-567303156/)
 * [Harshit Pandey](https://www.linkedin.com/in/harshit-pandey-a77302173/)
+* [Gunjan Chhablani](https://gchhablani.github.io/)
 
 
 Contributors

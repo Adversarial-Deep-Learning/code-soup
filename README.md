@@ -30,4 +30,4 @@ Index for tutorials and test suite for each algorithm.
 
 
 ## Contribution
-Please take a look the contribution.md for details, :star: us if you liked the work.
+Please take a look the [CONTRIBUTING.md](https://github.com/Adversarial-Deep-Learning/code-soup/blob/main/CONTRIBUTING.md) for details, :star: us if you liked the work.
