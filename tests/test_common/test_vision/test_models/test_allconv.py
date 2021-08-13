@@ -6,7 +6,7 @@ import torch.nn as nn
 from code_soup.common.vision.models.allconvnet import AllConvNet
 
 
-class AllConvModel(unittest.TestCase):
+class TestAllConvNet(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.model = AllConvNet(
