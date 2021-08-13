@@ -4,7 +4,7 @@ import torchvision.datasets as datasets
 from torch.utils.data import Dataset
 
 
-class MnistDataset(Dataset):
+class MNISTDataset(Dataset):
     """
     `MNIST <http://yann.lecun.com/exdb/mnist/>`_ Dataset. Built using TorchVision Dataset class.
     Args:

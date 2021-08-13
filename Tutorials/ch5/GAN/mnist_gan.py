@@ -6,7 +6,7 @@ import torchvision.transforms as transforms
 import torchvision.utils as vutils
 
 from code_soup.ch5.models import GAN
-from code_soup.common.vision.datasets import MnistDataset
+from code_soup.common.vision.datasets import MNISTDataset
 
 if __name__ == "__main__":
 
