@@ -127,5 +127,4 @@ class AllConv:
         avg_out = output.mean().item()
         self.allconvnet.optimizer.step()
         return avg_out
-
     
