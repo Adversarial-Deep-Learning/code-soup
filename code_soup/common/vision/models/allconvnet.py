@@ -8,23 +8,38 @@ import torch.optim as optim
 
 class AllConvNet(nn.Module):
     """
-    Following the architecture given in the paper
+    Following the architecture given in the paper: `All Convolutional Network <https://arxiv.org/abs/1412.6806>`_
     Methods
     --------
     forward(x)
     - return prediction tensor
+
+    step(self, data)
+    - Iterates the model for a single batch of data
     """
 
-    def __init__(self, image_size, n_classes=10):
+    def __init__(
+        self, image_size: int, n_classes: int, device: torch.device, lr: float
+    ):
         """
         Parameters
         ----------
         image_size : int
             Number of input dimensions aka side length of image
         n_classes: int
-            Number of classes in the dataset
+            Number of classes
+        device : torch.device
+             Device to run the model on
+        lr : float
+             Learning rate
         """
         super(AllConvNet, self).__init__()
+        self.image_size = image_size
+        self.n_classes = n_classes
+        self.criterion = torch.nn.BCELoss()
+        self.label = 1.0
+        self.device = device
+        self.lr = lr
         # Constructing the model as per the paper
         self.conv1 = nn.Conv2d(image_size, 96, 3, padding=2)
         self.conv2 = nn.Conv2d(96, 96, 3, padding=2)
@@ -36,7 +51,7 @@ class AllConvNet(nn.Module):
         self.conv8 = nn.Conv2d(192, 192, 1)
         self.conv9 = nn.Conv2d(10, 10, 1)
         self.class_conv = nn.Conv2d(192, n_classes, 1)
-        self.optimizer = optim.Adam(self.parameters(), lr=0.001)
+        self.optimizer = optim.Adam(self.parameters(), lr=lr)
 
     # Forward pass of the model
     def forward(self, x):
@@ -64,43 +79,6 @@ class AllConvNet(nn.Module):
         pool_out = F.softmax(pool_out.squeeze_(-1))
         return pool_out
 
-
-class AllConv:
-    """
-    All Convolutional Network Model Class.
-    Refer to the paper for more details: `All Convolutional Network <https://arxiv.org/abs/1412.6806>`_
-    Methods
-    -------
-    step(self, i, data)
-        Iterates the model for a single batch of data
-    """
-
-    def __init__(
-        self,
-        image_size: int,
-        n_classes: int,
-        device: torch.device,
-        lr: float,
-    ):
-        """
-        Parameters
-        ----------
-        image_size : int
-            Number of input dimensions aka side length of image
-        n_classes: int
-        Number of classes
-        device : torch.device
-            Device to run the model on
-        lr : float
-            Learning rate
-        """
-        self.image_size = image_size
-        self.n_classes = n_classes
-        self.device = device
-        self.allconvnet = AllConvNet(image_size, n_classes).to(device)
-        self.criterion = torch.nn.BCELoss()
-        self.label = 1.0
-
     def step(self, data: torch.Tensor) -> Tuple:
         """
         Iterates the model for a single batch of data, calculates the loss and updates the model parameters.
@@ -119,12 +97,12 @@ class AllConv:
         label = torch.full(
             (batch_size,), self.label, dtype=torch.float, device=self.device
         )
-        self.allconvnet.zero_grad()
+        self.zero_grad()
         # Forward pass
-        output = self.allconvnet(image).view(-1)
+        output = self(image).view(-1)
         # Calculate loss on a batch
         err = self.criterion(output, label)
         err.backward()
         avg_out = output.mean().item()
-        self.allconvnet.optimizer.step()
+        self.optimizer.step()
         return avg_out
