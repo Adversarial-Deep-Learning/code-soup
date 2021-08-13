@@ -2,6 +2,7 @@ import unittest
 
 import torch
 import torch.nn as nn
+
 from code_soup.common.vision.models.allconvnet import AllConv, AllConvNet
 
 
