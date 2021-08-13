@@ -3,4 +3,5 @@
 List of implemented datasets
 ---
 
-1. MNIST
+1. [MNIST](mnist.py)
+2. [CIFAR](cifar.py)
