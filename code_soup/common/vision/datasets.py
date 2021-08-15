@@ -9,7 +9,7 @@ class VisionDataset(ABC):
     @classmethod
     @abstractmethod
     def __init__(
-        self, dataset: callable, transform: callable, root: string, train: bool
+        self, dataset: callable, transform: callable, root: str, train: bool
     ) -> cls:
         """
         Parameters
