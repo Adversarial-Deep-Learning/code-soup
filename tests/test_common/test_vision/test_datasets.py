@@ -1,11 +1,8 @@
 import unittest
-from pathlib import Path
 
-import torch
 import torchvision
 from parameterized import parameterized_class
-from PIL import Image
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from code_soup.common.vision.datasets import ImageClassificationDataset
@@ -19,6 +16,11 @@ from code_soup.common.vision.datasets import ImageClassificationDataset
     ],
 )
 class TestVisionDataset(unittest.TestCase):
+    """Vision Dataset Parameterized TestCase
+
+    Args: ("dataset_class", "expected_size", "expected_label")
+    """
+
     def setUp(self):
         self.TestDataset = ImageClassificationDataset(
             self.dataset_class, transform=transforms.Compose([transforms.ToTensor()])
