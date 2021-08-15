@@ -11,8 +11,8 @@ from code_soup.common.vision.datasets import ImageClassificationDataset
 @parameterized_class(
     ("dataset_class", "expected_size", "expected_label"),
     [
-        (torchvision.datasets.MNIST, (32, 1, 28, 28), 5),
-        (torchvision.datasets.CIFAR10, (32, 3, 32, 32), 6),
+        (torchvision.datasets.MNIST, (16, 1, 28, 28), 5),
+        (torchvision.datasets.CIFAR10, (12, 3, 32, 32), 6),
     ],
 )
 class TestVisionDataset(unittest.TestCase):
@@ -26,7 +26,7 @@ class TestVisionDataset(unittest.TestCase):
             self.dataset_class, transform=transforms.Compose([transforms.ToTensor()])
         )
         self.TestDatasetLoader = DataLoader(
-            self.TestDataset, batch_size=32, shuffle=False
+            self.TestDataset, batch_size=self.expected_size[0], shuffle=False
         )
         self.samples = next(iter(self.TestDatasetLoader))
 

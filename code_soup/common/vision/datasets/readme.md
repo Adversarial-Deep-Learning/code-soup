@@ -1,4 +1,4 @@
-# Vision Datasets, Models & Utilities
+# Vision Datasets
 
 List of implemented datasets
 ---
