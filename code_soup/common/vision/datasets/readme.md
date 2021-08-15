@@ -1,7 +1,7 @@
-# Common Datasets for vision
+# Vision Datasets
 
 List of implemented datasets
 ---
 
-1. [MNIST](mnist.py)
-2. [CIFAR](cifar.py)
+1. [MNIST]
+2. [CIFAR]
