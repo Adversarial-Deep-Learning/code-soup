@@ -8,9 +8,7 @@ import torchvision
 class VisionDataset(ABC):
     @classmethod
     @abstractmethod
-    def __init__(
-        self, dataset: callable, transform: callable, root: str, train: bool
-    ) -> cls:
+    def __init__(self, dataset: callable, transform: callable, root: str, train: bool):
         """
         Parameters
         ----------
