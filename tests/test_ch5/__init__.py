@@ -1,5 +1,1 @@
-from tests.test_ch5.test_models import (
-    TestDiscriminatorModel,
-    TestGANModel,
-    TestGeneratorModel,
-)
+from tests.test_ch5.test_models import TestDiscriminator, TestGAN, TestGenerator

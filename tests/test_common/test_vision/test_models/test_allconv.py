@@ -3,13 +3,13 @@ import unittest
 import torch
 import torch.nn as nn
 
-from code_soup.common.vision.models.allconvnet import AllConv, AllConvNet
+from code_soup.common.vision.models.allconvnet import AllConvNet
 
 
-class AllConvModel(unittest.TestCase):
+class TestAllConvNet(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.model = AllConv(
+        cls.model = AllConvNet(
             image_size=96, n_classes=1, device=torch.device("cpu"), lr=0.01
         )
 

@@ -34,7 +34,7 @@ New code should be compatible with Python 3.X versions. Once you finish implemen
 please run lint checking and tests:
 
 #### Environment
-To make sure all dependencies are accounted for we recommend to use a different environment, If you have not worked on an environment before tou can check it out here https://realpython.com/python-virtual-environments-a-primer/, you can use the `environment.yml` file or install the dependencies using
+To make sure all dependencies are accounted for we recommend to use a different environment, If you have not worked on an environment before you can check it out here https://realpython.com/python-virtual-environments-a-primer/, you can use the `environment.yml` file or install the dependencies using
 ```python
 pip install -r requirements.txt
 ```

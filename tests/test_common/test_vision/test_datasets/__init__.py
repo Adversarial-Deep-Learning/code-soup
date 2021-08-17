@@ -1,2 +1,0 @@
-from tests.test_common.test_vision.test_datasets.cifar_test import TestCIFARDataset
-from tests.test_common.test_vision.test_datasets.mnist_test import TestMnistDataset
