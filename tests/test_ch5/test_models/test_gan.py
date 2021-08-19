@@ -6,7 +6,7 @@ import torch.nn as nn
 from code_soup.ch5.models.gan import GAN, Discriminator, Generator
 
 
-class TestDiscriminatorModel(unittest.TestCase):
+class TestDiscriminator(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.model = Discriminator(image_size=28, channels=1, lr=0.002)
@@ -22,7 +22,7 @@ class TestDiscriminatorModel(unittest.TestCase):
         )
 
 
-class TestGeneratorModel(unittest.TestCase):
+class TestGenerator(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.model = Generator(image_size=28, channels=1, latent_dims=128, lr=0.02)
@@ -37,7 +37,7 @@ class TestGeneratorModel(unittest.TestCase):
         self.assertEqual(self.model.main[-2].weight.data.shape, torch.Size([784, 1024]))
 
 
-class TestGANModel(unittest.TestCase):
+class TestGAN(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.model = GAN(
