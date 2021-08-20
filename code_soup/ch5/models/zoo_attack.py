@@ -1,16 +1,13 @@
 import random
+from typing import List, Tuple, Union
 
 import numpy as np
+import scipy
 import torch
 import torch.nn.functional as F
 import torchvision.datasets as datasets
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
-
-import numpy as np
-import scipy
-
-from typing import List, Tuple, Union
 
 
 def seed(value=42):
@@ -46,7 +43,7 @@ class ZooAttackConfig:
         use_importance=True,
         use_resize=False,
         init_size=32,
-        adam_eps=1e-8
+        adam_eps=1e-8,
     ):
         self.binary_search_steps = binary_search_steps
         self.max_iterations = max_iterations
@@ -69,12 +66,13 @@ class ZooAttackConfig:
         self.init_size = init_size
         self.adam_eps = adam_eps
 
+
 class ZooAttack:
     def __init__(
         self,
         model: torch.nn.Module,
         config: ZooAttackConfig,
-        input_image_shape: Union[List, Tuple],
+        input_image_shape: List[int],
         device: str,
     ):
 
@@ -82,65 +80,106 @@ class ZooAttack:
 
         self.config = config
         self.device = device
+        self.input_image_shape = input_image_shape
 
         # Put model in eval mode
-        self.model = model
-        if self.device == "cuda":
-            self.model = self.model.cuda()
+        self.model = model.to(device)
         self.model.eval()
 
+        # DUMMIES
         var_size = np.prod(input_image_shape)  # width * height * num_channels
 
         # Initialize Adam optimizer values
-        self.mt = np.zeros(var_size, dtype=np.float32)
-        self.vt = np.zeros(var_size, dtype=np.float32)
+        self.mt_arr = np.zeros(var_size, dtype=np.float32)
+        self.vt_arr = np.zeros(var_size, dtype=np.float32)
+        self.adam_epochs = np.ones(var_size, dtype=np.int64)
 
-    def get_perturbed_image(self, orig_img: torch.tensor, modifier: torch.tensor):
+    def get_perturbed_image(self, orig_img: torch.tensor, modifier: np.ndarray):
+        modifier = torch.from_numpy(modifier).to(self.device)
         if self.config.use_tanh:
             return torch.tanh(orig_img + modifier) / 2
         else:
             return orig_img + modifier
 
     def l2_distance_loss(self, orig_img: torch.tensor, new_img: torch.tensor):
+
+        assert orig_img.shape == new_img.shape, "Images must be the same shape"
+
+        if orig_img.ndim == 3:
+            dim = (0, 1, 2)
+        else:
+            dim = (1, 2, 3)
+
         if self.config.use_tanh:
             return (
-                torch.sum(
-                    torch.square(new_img - torch.tanh(orig_img) / 2), dim=(1, 2, 3)
-                )
+                torch.sum(torch.square(new_img - torch.tanh(orig_img) / 2), dim=dim)
                 .detach()
                 .cpu()
                 .numpy()
             )
         else:
             return (
-                torch.sum(torch.square(new_img - orig_img), dim=(1, 2, 3))
+                torch.sum(torch.square(new_img - orig_img), dim=dim)
                 .detach()
                 .cpu()
                 .numpy()
             )
 
     def confidence_loss(self, new_img: torch.tensor, target: torch.tensor):
+
+        assert (
+            new_img.ndim == 3 or new_img.ndim == 4
+        ), "`new_img` must be of shape (N, H, W, C) or (H, W, C)"
+        assert (
+            target.ndim == 1 or target.ndim == 2
+        ), "`target` must be of shape (N,L)  or (L,) where L is number of classes"
+
+        # Reshape to 4D input/output pairs if the input is for a single image
+        if new_img.ndim == 3:
+            assert (
+                target.ndim == 1
+            ), "`target` must be of shape (L,) where L is number of classes when single image is passed."
+            new_img = new_img.unsqueeze(0)
+            target = target.unsqueeze(0)
+
+        new_img = new_img.permute(0, 3, 1, 2)
+
         model_output = self.model(new_img)
         if self.config.use_log:
             model_output = F.softmax(model_output, dim=1)
 
-        real = torch.sum(target * model_output, -1)
-        other = torch.max((1 - target) * model_output - (target * 10000), -1)[0]
+        real = torch.sum(target * model_output, dim=1)
+        other = torch.max((1 - target) * model_output - (target * 10000), dim=1)[0]
 
         if self.config.use_log:
             real = torch.log(real + 1e-30)
             other = torch.log(other + 1e-30)
 
-        confidence = torch.tensor(self.config.confidence).type(torch.float64)
-        if self.device == "cuda":
-            confidence = confidence.cuda()
+        confidence = torch.tensor(self.config.confidence, device=self.device).type(
+            torch.float64
+        )
 
         if self.config.targeted:
             # If targetted, optimize for making the other class most likely
-            return torch.max(0.0, other - real + confidence).detach().cpu().numpy()
+            output = (
+                torch.max(torch.zeros_like(real), other - real + confidence)
+                .detach()
+                .cpu()
+                .numpy()
+            )
         else:
             # If untargetted, optimize for making this class least likely.
-            return torch.max(0.0, real - other + confidence).detach().cpu().numpy()
+            output = (
+                torch.max(torch.zeros_like(real), real - other + confidence)
+                .detach()
+                .cpu()
+                .numpy()
+            )
+
+        if new_img.ndim == 3:
+            return output.squeeze(0)
+        else:
+            return output
 
     def get_total_loss(
         self, orig_img: torch.tensor, new_img: torch.tensor, target: torch.tensor
@@ -164,55 +203,63 @@ class ZooAttack:
     def get_zero_order_gradients(self, losses: np.ndarray):
         grad = np.zeros(self.config.batch_size)
         for i in range(self.config.batch_size):
-            grad[i] = (losses[i*2+1] - losses[i*2+2]) / 0.0002 
+            grad[i] = (losses[i * 2 + 1] - losses[i * 2 + 2]) / 0.0002
         return grad
 
-    def coordinate_adam(self, indices: np.ndarray, grad: np.ndarray, modifier: torch.tensor, proj: bool):
+    def coordinate_adam(
+        self, indices: np.ndarray, grad: np.ndarray, modifier: np.ndarray, proj: bool
+    ):
         # First moment
         mt = self.mt_arr[indices]
-        mt = self.config.adam_beta1*mt + (1-self.config.adam_beta1)*grad
-        
+        mt = self.config.adam_beta1 * mt + (1 - self.config.adam_beta1) * grad
+
         self.mt_arr[indices] = mt
 
         # Second moment
         vt = self.vt_arr[indices]
-        vt = self.config.adam_beta2*vt + (1-self.config.adam_beta2)*(grad*grad)
+        vt = self.config.adam_beta2 * vt + (1 - self.config.adam_beta2) * (grad * grad)
 
         self.vt_arr[indices] = vt
 
         epochs = self.adam_epochs[indices]
 
         # Bias Correction
-        mt_hat = mt / (1 - np.power(self.config.adam_beta1,epochs))
-        vt_hat = vt / (1 - np.power(self.config.adam_beta2,epochs))
+        mt_hat = mt / (1 - np.power(self.config.adam_beta1, epochs))
+        vt_hat = vt / (1 - np.power(self.config.adam_beta2, epochs))
 
         m = modifier.reshape(-1)
         old_val = m[indices]
-        old_val -= self.config.learning_rate*mt_hat/(np.sqrt(vt_hat) + self.config.adam_eps)
+        old_val -= (
+            self.config.learning_rate
+            * mt_hat
+            / (np.sqrt(vt_hat) + self.config.adam_eps)
+        )
         if proj:
-            old_val = np.maximum(np.minimum(old_val, self.up[indices]), self.down[indices])
+            old_val = np.maximum(
+                np.minimum(old_val, self.up[indices]), self.down[indices]
+            )
         m[indices] = old_val
-        self.adam_epochs[indices] = epochs+1
+        self.adam_epochs[indices] = epochs + 1
 
-
-        
     # Adapted from original code
-    def resample_importance(self, modifier: torch.tensor, sampling_importance: np.ndarray, double_size = False):
+    def resample_importance(
+        self, modifier: torch.tensor, sampling_importance: np.ndarray, double_size=False
+    ):
         modifier = np.squeeze(modifier)
         old_shape = modifier.shape
         if double_size:
-            new_shape = (old_shape[0]*2, old_shape[1]*2, old_shape[2])
+            new_shape = (old_shape[0] * 2, old_shape[1] * 2, old_shape[2])
         else:
             new_shape = old_shape
-        prob = np.empty(shape=new_shape, dtype = np.float32)
+        prob = np.empty(shape=new_shape, dtype=np.float32)
         for i in range(modifier.shape[2]):
-            image = np.abs(modifier[:,:,i])
+            image = np.abs(modifier[:, :, i])
             image_pool = self.max_pooling(image, old_shape[0] // 8)
             if double_size:
-                prob[:,:,i] = scipy.misc.imresize(image_pool, 2.0, 'nearest', mode = 'F')
+                prob[:, :, i] = scipy.misc.imresize(
+                    image_pool, 2.0, "nearest", mode="F"
+                )
             else:
-                prob[:,:,i] = image_pool
+                prob[:, :, i] = image_pool
         prob /= np.sum(prob)
         return prob
-
-
