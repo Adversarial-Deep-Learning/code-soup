@@ -1,9 +1,9 @@
 import unittest
+from copy import deepcopy
 
 import numpy as np
 import torch
 import torch.nn as nn
-from copy import deepcopy
 
 from code_soup.ch5.models.zoo_attack import ZooAttack, ZooAttackConfig
 
@@ -11,7 +11,7 @@ from code_soup.ch5.models.zoo_attack import ZooAttack, ZooAttackConfig
 class TestZooAttackConfig(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.config = ZooAttackConfig(learning_rate=1e-2, batch_size=12, init_size=32)
+        cls.config = ZooAttackConfig(learning_rate=1e-2, batch_size=4, init_size=4)
 
     def test_learning_rate(self):
         self.assertEqual(self.config.learning_rate, 1e-2)
@@ -22,8 +22,8 @@ class TestZooAttackConfig(unittest.TestCase):
 
     def test_equality(self):
         self.assertEqual(self.config.learning_rate, 1e-2)
-        self.assertEqual(self.config.batch_size, 12)
-        self.assertEqual(self.config.init_size, 32)
+        self.assertEqual(self.config.batch_size, 4)
+        self.assertEqual(self.config.init_size, 4)
 
 
 class TestZooAttackBasic(unittest.TestCase):
@@ -92,7 +92,7 @@ class TestZooAttackBasic(unittest.TestCase):
 
         cls.labels = torch.tensor([0, 1])
 
-        cls.config = ZooAttackConfig(batch_size=cls.orig_img.shape[0])
+        cls.config = ZooAttackConfig(batch_size=4, init_size=4)
         cls.model = nn.Sequential(
             nn.Conv2d(
                 in_channels=3, out_channels=1, kernel_size=2, padding=0, bias=False
@@ -139,7 +139,9 @@ class TestZooAttackBasic(unittest.TestCase):
         )
 
     def test_get_perturbed_image(self):
-        perturbed_image = self.attack.get_perturbed_image(self.orig_img, self.modifier)
+        perturbed_image = self.attack.get_perturbed_image(
+            self.orig_img, torch.from_numpy(self.modifier)
+        )
         self.assertEqual(perturbed_image.shape, self.orig_img.shape)
 
         output = torch.tanh(self.orig_img + self.modifier) / 2
@@ -206,8 +208,59 @@ class TestZooAttackBasic(unittest.TestCase):
         grads = self.attack.zero_order_gradients(losses)
         self.assertEqual(grads.shape, (self.config.batch_size,))
 
-    def test_coordinate_adam(self):
+    def test_total_loss(self):
+        temp_orig_img = self.orig_img.unsqueeze(0)
+        new_img = self.attack.get_perturbed_image(self.orig_img, self.modifier)
+        temp_new_img = new_img.unsqueeze(0)
+        labels = self.labels.unsqueeze(0)
+
+        loss = self.attack.total_loss(temp_orig_img, temp_new_img, labels)
+        self.assertEqual(loss.shape[0], temp_orig_img.shape[0])
+
+    def test_max_pooling(self):
+        pooled_output = self.attack.max_pooling(self.modifier, 2)
+        self.assertEqual(pooled_output.shape, self.modifier.shape)
+
         # Integration Test
+        self.assertTrue(
+            np.allclose(
+                pooled_output,
+                np.array(
+                    [
+                        [
+                            [1.5072422, 1.5072422, 1.5072422],
+                            [1.5072422, 1.5072422, 1.5072422],
+                            [0.6685426, 0.6685426, 0.6685426],
+                            [0.6685426, 0.6685426, 0.6685426],
+                        ],
+                        [
+                            [1.5072422, 1.5072422, 1.5072422],
+                            [1.5072422, 1.5072422, 1.5072422],
+                            [0.6685426, 0.6685426, 0.6685426],
+                            [0.6685426, 0.6685426, 0.6685426],
+                        ],
+                        [
+                            [1.5836877, 1.5836877, 1.5836877],
+                            [1.5836877, 1.5836877, 1.5836877],
+                            [1.4234338, 1.4234338, 1.4234338],
+                            [1.4234338, 1.4234338, 1.4234338],
+                        ],
+                        [
+                            [1.5836877, 1.5836877, 1.5836877],
+                            [1.5836877, 1.5836877, 1.5836877],
+                            [1.4234338, 1.4234338, 1.4234338],
+                            [1.4234338, 1.4234338, 1.4234338],
+                        ],
+                    ]
+                ),
+                atol=1e-5,
+            )
+        )
+
+    def test_coordinate_adam(self):
+
+        # Integration Test
+        attack = deepcopy(self.attack)
         indices = np.array([15, 24, 32, 45])
 
         grad = np.array([2000.0, 3500.0, -1000.0, -1500.0])
@@ -216,11 +269,11 @@ class TestZooAttackBasic(unittest.TestCase):
 
         modifier = deepcopy(self.modifier)
 
-        self.attack.coordinate_adam(indices, grad, modifier, proj)
+        attack.coordinate_adam(indices, grad, modifier, proj)
 
         self.assertTrue(
             np.allclose(
-                self.attack.mt_arr,
+                attack.mt_arr,
                 np.array(
                     [
                         0.0,
@@ -279,7 +332,7 @@ class TestZooAttackBasic(unittest.TestCase):
 
         self.assertTrue(
             np.allclose(
-                self.attack.vt_arr,
+                attack.vt_arr,
                 np.array(
                     [
                         0.0,
@@ -373,7 +426,7 @@ class TestZooAttackBasic(unittest.TestCase):
 
         self.assertTrue(
             (
-                self.attack.adam_epochs
+                attack.adam_epochs
                 == np.array(
                     [
                         1,
@@ -428,3 +481,352 @@ class TestZooAttackBasic(unittest.TestCase):
                 )
             ).all(),
         )
+
+    def test_get_new_prob(self):
+        probs = self.attack.get_new_prob(self.modifier, 2)
+        self.assertEqual(probs.shape, self.modifier.shape)
+
+        # Integration Test
+        self.assertTrue(
+            np.allclose(
+                probs,
+                np.array(
+                    [
+                        [
+                            [0.01471687, 0.02125866, 0.02285866],
+                            [0.01471687, 0.02125866, 0.02285866],
+                            [0.00914774, 0.03038241, 0.0248071],
+                            [0.00914774, 0.03038241, 0.0248071],
+                        ],
+                        [
+                            [0.01471687, 0.02125866, 0.02285866],
+                            [0.01471687, 0.02125866, 0.02285866],
+                            [0.00914774, 0.03038241, 0.0248071],
+                            [0.00914774, 0.03038241, 0.0248071],
+                        ],
+                        [
+                            [0.01337715, 0.02401802, 0.02019542],
+                            [0.01337715, 0.02401802, 0.02019542],
+                            [0.02158763, 0.01400388, 0.03364644],
+                            [0.02158763, 0.01400388, 0.03364644],
+                        ],
+                        [
+                            [0.01337715, 0.02401802, 0.02019542],
+                            [0.01337715, 0.02401802, 0.02019542],
+                            [0.02158763, 0.01400388, 0.03364644],
+                            [0.02158763, 0.01400388, 0.03364644],
+                        ],
+                    ]
+                ),
+                atol=1e-5,
+            )
+        )
+
+    def test_get_resize_img(self):
+        attack = deepcopy(self.attack)
+        new_modifier = attack.resize_img(8, 8, 3, self.modifier, 2)
+        print(new_modifier)
+        self.assertEqual(new_modifier.shape, (8, 8, 3))
+
+        self.assertEqual(attack.sample_prob.shape, np.prod(8 * 8 * 3))
+
+        # Integration Test
+        self.assertTrue(
+            np.allclose(
+                new_modifier,
+                np.array(
+                    [
+                        [
+                            [-0.21563086, 0.54629284, 1.0879989],
+                            [-0.20480949, 0.50297487, 1.1928097],
+                            [-0.18316671, 0.41633892, 1.4024314],
+                            [-0.16603279, 0.25864834, 0.8754347],
+                            [-0.15340771, 0.02990307, -0.38818032],
+                            [-0.22677608, 0.04001407, -1.1739203],
+                            [-0.3861379, 0.28898132, -1.4817853],
+                            [-0.46581882, 0.41346493, -1.6357177],
+                        ],
+                        [
+                            [0.0808751, 0.2946237, 0.68155044],
+                            [0.02316307, 0.2033003, 0.7534723],
+                            [-0.09226094, 0.02065352, 0.89731616],
+                            [-0.17775872, -0.19404912, 0.53499115],
+                            [-0.23333023, -0.44080764, -0.3335028],
+                            [-0.25710666, -0.4670549, -0.8407254],
+                            [-0.24908802, -0.2727908, -0.98667693],
+                            [-0.2450787, -0.17565879, -1.0596527],
+                        ],
+                        [
+                            [0.673887, -0.20871457, -0.1313464],
+                            [0.47910815, -0.39604884, -0.12520233],
+                            [0.0895506, -0.77071726, -0.11291426],
+                            [-0.20121056, -1.099444, -0.14589605],
+                            [-0.3931753, -1.3822291, -0.22414777],
+                            [-0.31776786, -1.481193, -0.17433581],
+                            [0.02501175, -1.396335, 0.00353971],
+                            [0.19640155, -1.3539063, 0.09247744],
+                        ],
+                        [
+                            [0.51816654, -0.14572906, -0.34002355],
+                            [0.32536998, -0.3152582, -0.29268563],
+                            [-0.0602231, -0.6543164, -0.19800991],
+                            [-0.3734866, -1.04629, -0.25373322],
+                            [-0.61442065, -1.4911791, -0.45985574],
+                            [-0.4094141, -1.5918247, -0.23538877],
+                            [0.24153282, -1.3482264, 0.4196677],
+                            [0.56700635, -1.2264273, 0.7471959],
+                        ],
+                        [
+                            [-0.38628626, 0.48358017, 0.05551901],
+                            [-0.4380515, 0.4456721, 0.25102246],
+                            [-0.54158205, 0.36985612, 0.6420292],
+                            [-0.6945869, -0.03458703, 0.21147956],
+                            [-0.89706624, -0.76765776, -1.0406268],
+                            [-0.5320455, -0.7989503, -1.0238843],
+                            [0.4004752, -0.12846482, 0.2617069],
+                            [0.8667356, 0.20677787, 0.9045024],
+                        ],
+                        [
+                            [-0.8493984, 0.51272225, 0.09857011],
+                            [-0.7450356, 0.6541181, 0.24629137],
+                            [-0.5363101, 0.93690985, 0.54173374],
+                            [-0.44687366, 0.6133301, 0.01979139],
+                            [-0.4767264, -0.31662107, -1.319536],
+                            [-0.12552696, -0.35671276, -1.2570076],
+                            [0.60672456, 0.493055, 0.20737618],
+                            [0.9728504, 0.9179388, 0.93956804],
+                        ],
+                        [
+                            [-0.87116975, -0.05830276, -0.21087027],
+                            [-0.5955823, 0.3100797, -0.3068789],
+                            [-0.04440734, 1.0468445, -0.49889636],
+                            [0.369653, 0.89746165, -0.8287977],
+                            [0.6465987, -0.1380692, -1.2965835],
+                            [0.8101414, -0.26511204, -0.9347591],
+                            [0.8602809, 0.51633304, 0.25667554],
+                            [0.8853507, 0.9070555, 0.8523928],
+                        ],
+                        [
+                            [-0.88205546, -0.3438152, -0.36559045],
+                            [-0.52085567, 0.13806051, -0.583464],
+                            [0.20154402, 1.1018119, -1.0192113],
+                            [0.7779163, 1.0395274, -1.2530923],
+                            [1.2082613, -0.04879326, -1.2851074],
+                            [1.2779756, -0.21931165, -0.7736348],
+                            [0.98705906, 0.52797204, 0.28132522],
+                            [0.84160084, 0.90161383, 0.80880517],
+                        ],
+                    ]
+                ),
+                atol=1e-5,
+            )
+        )
+
+        self.assertTrue(
+            np.allclose(
+                attack.sample_prob,
+                np.array(
+                    [
+                        0.00367922,
+                        0.00531467,
+                        0.00571467,
+                        0.00367922,
+                        0.00531467,
+                        0.00571467,
+                        0.00367922,
+                        0.00531467,
+                        0.00571467,
+                        0.00367922,
+                        0.00531467,
+                        0.00571467,
+                        0.00228693,
+                        0.0075956,
+                        0.00620178,
+                        0.00228693,
+                        0.0075956,
+                        0.00620178,
+                        0.00228693,
+                        0.0075956,
+                        0.00620178,
+                        0.00228693,
+                        0.0075956,
+                        0.00620178,
+                        0.00367922,
+                        0.00531467,
+                        0.00571467,
+                        0.00367922,
+                        0.00531467,
+                        0.00571467,
+                        0.00367922,
+                        0.00531467,
+                        0.00571467,
+                        0.00367922,
+                        0.00531467,
+                        0.00571467,
+                        0.00228693,
+                        0.0075956,
+                        0.00620178,
+                        0.00228693,
+                        0.0075956,
+                        0.00620178,
+                        0.00228693,
+                        0.0075956,
+                        0.00620178,
+                        0.00228693,
+                        0.0075956,
+                        0.00620178,
+                        0.00367922,
+                        0.00531467,
+                        0.00571467,
+                        0.00367922,
+                        0.00531467,
+                        0.00571467,
+                        0.00367922,
+                        0.00531467,
+                        0.00571467,
+                        0.00367922,
+                        0.00531467,
+                        0.00571467,
+                        0.00228693,
+                        0.0075956,
+                        0.00620178,
+                        0.00228693,
+                        0.0075956,
+                        0.00620178,
+                        0.00228693,
+                        0.0075956,
+                        0.00620178,
+                        0.00228693,
+                        0.0075956,
+                        0.00620178,
+                        0.00367922,
+                        0.00531467,
+                        0.00571467,
+                        0.00367922,
+                        0.00531467,
+                        0.00571467,
+                        0.00367922,
+                        0.00531467,
+                        0.00571467,
+                        0.00367922,
+                        0.00531467,
+                        0.00571467,
+                        0.00228693,
+                        0.0075956,
+                        0.00620178,
+                        0.00228693,
+                        0.0075956,
+                        0.00620178,
+                        0.00228693,
+                        0.0075956,
+                        0.00620178,
+                        0.00228693,
+                        0.0075956,
+                        0.00620178,
+                        0.00334429,
+                        0.00600451,
+                        0.00504886,
+                        0.00334429,
+                        0.00600451,
+                        0.00504886,
+                        0.00334429,
+                        0.00600451,
+                        0.00504886,
+                        0.00334429,
+                        0.00600451,
+                        0.00504886,
+                        0.00539691,
+                        0.00350097,
+                        0.00841161,
+                        0.00539691,
+                        0.00350097,
+                        0.00841161,
+                        0.00539691,
+                        0.00350097,
+                        0.00841161,
+                        0.00539691,
+                        0.00350097,
+                        0.00841161,
+                        0.00334429,
+                        0.00600451,
+                        0.00504886,
+                        0.00334429,
+                        0.00600451,
+                        0.00504886,
+                        0.00334429,
+                        0.00600451,
+                        0.00504886,
+                        0.00334429,
+                        0.00600451,
+                        0.00504886,
+                        0.00539691,
+                        0.00350097,
+                        0.00841161,
+                        0.00539691,
+                        0.00350097,
+                        0.00841161,
+                        0.00539691,
+                        0.00350097,
+                        0.00841161,
+                        0.00539691,
+                        0.00350097,
+                        0.00841161,
+                        0.00334429,
+                        0.00600451,
+                        0.00504886,
+                        0.00334429,
+                        0.00600451,
+                        0.00504886,
+                        0.00334429,
+                        0.00600451,
+                        0.00504886,
+                        0.00334429,
+                        0.00600451,
+                        0.00504886,
+                        0.00539691,
+                        0.00350097,
+                        0.00841161,
+                        0.00539691,
+                        0.00350097,
+                        0.00841161,
+                        0.00539691,
+                        0.00350097,
+                        0.00841161,
+                        0.00539691,
+                        0.00350097,
+                        0.00841161,
+                        0.00334429,
+                        0.00600451,
+                        0.00504886,
+                        0.00334429,
+                        0.00600451,
+                        0.00504886,
+                        0.00334429,
+                        0.00600451,
+                        0.00504886,
+                        0.00334429,
+                        0.00600451,
+                        0.00504886,
+                        0.00539691,
+                        0.00350097,
+                        0.00841161,
+                        0.00539691,
+                        0.00350097,
+                        0.00841161,
+                        0.00539691,
+                        0.00350097,
+                        0.00841161,
+                        0.00539691,
+                        0.00350097,
+                        0.00841161,
+                    ]
+                ),
+                atol=1e-5,
+            )
+        )
+
+    # def test_single_step(self):
+    #     attack = deepcopy(self.attack)
+    #     modifier = self.modifier.reshape((-1,) + self.modifier.shape)
+    #     target = self.labels.reshape((-1,) + self.labels.shape)
+    #     attack.single_step(0, modifier, self.orig_img, target)

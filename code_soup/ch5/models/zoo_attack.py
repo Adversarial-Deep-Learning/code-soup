@@ -1,11 +1,13 @@
 import random
 from typing import List, Tuple, Union
 
+import cv2
 import numpy as np
 import scipy
 import torch
 import torch.nn.functional as F
 import torchvision.datasets as datasets
+from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 
@@ -86,16 +88,19 @@ class ZooAttack:
         self.model = model.to(device)
         self.model.eval()
 
-        # DUMMIES
+        # DUMMIES - Values will be reset during attack
         var_size = np.prod(input_image_shape)  # width * height * num_channels
+        self.var_list = np.array(range(0, var_size), dtype=np.int32)
 
         # Initialize Adam optimizer values
         self.mt_arr = np.zeros(var_size, dtype=np.float32)
         self.vt_arr = np.zeros(var_size, dtype=np.float32)
         self.adam_epochs = np.ones(var_size, dtype=np.int64)
 
-    def get_perturbed_image(self, orig_img: torch.tensor, modifier: np.ndarray):
-        modifier = torch.from_numpy(modifier).to(self.device)
+        # Sampling Probabilities
+        self.sample_prob = np.ones(var_size, dtype=np.float32) / var_size
+
+    def get_perturbed_image(self, orig_img: torch.tensor, modifier: torch.tensor):
         if self.config.use_tanh:
             return torch.tanh(orig_img + modifier) / 2
         else:
@@ -103,9 +108,9 @@ class ZooAttack:
 
     def l2_distance_loss(self, orig_img: torch.tensor, new_img: torch.tensor):
 
-        assert orig_img.shape == new_img.shape, "Images must be the same shape"
+        # assert orig_img.shape == new_img.shape, "Images must be the same shape"
 
-        if orig_img.ndim == 3:
+        if new_img.ndim == 3:
             dim = (0, 1, 2)
         else:
             dim = (1, 2, 3)
@@ -181,7 +186,7 @@ class ZooAttack:
         else:
             return output
 
-    def get_total_loss(
+    def total_loss(
         self, orig_img: torch.tensor, new_img: torch.tensor, target: torch.tensor
     ):
         l2_loss = self.l2_distance_loss(orig_img, new_img)
@@ -189,7 +194,7 @@ class ZooAttack:
         return l2_loss + self.config.const * confidence_loss
 
     # Adapted from original code
-    def max_pooling(self, orig_img: torch.tensor, patch_size: int):
+    def max_pooling(self, orig_img: np.ndarray, patch_size: int):
         img_pool = np.copy(orig_img)
         img_x = orig_img.shape[0]
         img_y = orig_img.shape[1]
@@ -242,24 +247,87 @@ class ZooAttack:
         self.adam_epochs[indices] = epochs + 1
 
     # Adapted from original code
-    def resample_importance(
-        self, modifier: torch.tensor, sampling_importance: np.ndarray, double_size=False
-    ):
+    def get_new_prob(self, modifier, max_pooling_ratio=8, gen_double=False):
         modifier = np.squeeze(modifier)
         old_shape = modifier.shape
-        if double_size:
+        if gen_double:
             new_shape = (old_shape[0] * 2, old_shape[1] * 2, old_shape[2])
         else:
             new_shape = old_shape
         prob = np.empty(shape=new_shape, dtype=np.float32)
         for i in range(modifier.shape[2]):
             image = np.abs(modifier[:, :, i])
-            image_pool = self.max_pooling(image, old_shape[0] // 8)
-            if double_size:
-                prob[:, :, i] = scipy.misc.imresize(
-                    image_pool, 2.0, "nearest", mode="F"
+            image_pool = self.max_pooling(image, old_shape[0] // max_pooling_ratio)
+            if gen_double:
+                prob[:, :, i] = np.array(
+                    Image.fromarray(image_pool).resize(
+                        (new_shape[0], new_shape[1]), Image.NEAREST
+                    )
                 )
             else:
                 prob[:, :, i] = image_pool
         prob /= np.sum(prob)
         return prob
+
+    # Adapted from original code
+    def resize_img(
+        self,
+        small_x,
+        small_y,
+        num_channels,
+        modifier,
+        max_pooling_ratio=8,
+        reset_only=False,
+    ):
+        small_single_shape = (small_x, small_y, num_channels)
+        if reset_only:
+            modifier = np.zeros((1,) + small_single_shape, dtype=np.float32)
+        else:
+            # run the resize_op once to get the scaled image
+            prev_modifier = np.copy(modifier)
+            modifier = cv2.resize(
+                modifier, (small_x, small_y), interpolation=cv2.INTER_LINEAR
+            )
+
+        # prepare the list of all valid variables
+        var_size = np.prod(small_single_shape)
+        self.var_list = np.array(range(0, var_size), dtype=np.int32)
+        # ADAM status
+        self.mt_arr = np.zeros(var_size, dtype=np.float32)
+        self.vt_arr = np.zeros(var_size, dtype=np.float32)
+        self.adam_epochs = np.ones(var_size, dtype=np.int32)
+        # update sample probability
+        if reset_only:
+            self.sample_prob = np.ones(var_size, dtype=np.float32) / var_size
+        else:
+            self.sample_prob = self.get_new_prob(prev_modifier, max_pooling_ratio, True)
+            self.sample_prob = self.sample_prob.reshape(var_size)
+
+        return modifier
+
+    # def single_step(self, iter, modifier, orig_img, target):
+    #     var = np.repeat(modifier, self.config.batch_size * 2 + 1, axis=0)
+    #     print(var.shape)
+    #     var_size = modifier.size
+
+    #     print(self.var_list.size)
+    #     # Select indices for current iteration
+    #     if self.config.use_importance:
+    #         var_indice = np.random.choice(
+    #             self.var_list.size,
+    #             self.config.batch_size,
+    #             replace=False,
+    #             p=self.sample_prob,
+    #         )
+    #     else:
+    #         var_indice = np.random.choice(
+    #             self.var_list.size, self.config.batch_size, replace=False
+    #         )
+    #     indice = self.var_list[var_indice]
+
+    #     for i in range(self.config.batch_size):
+    #         var[i * 2 + 1].reshape(-1)[indice[i]] += 0.0001
+    #         var[i * 2 + 2].reshape(-1)[indice[i]] -= 0.0001
+
+    #     new_img = self.get_perturbed_image(orig_img, var)
+    #     losses = self.total_loss(orig_img, new_img, target)
