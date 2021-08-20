@@ -9,12 +9,11 @@ __all__ = ["Inception3", "inception_v3"]
 _InceptionOutputs = namedtuple("InceptionOutputs", ["logits", "aux_logits"])
 
 
+# implemented against the CIFAR-10 dataset
 def inception_v3(pretrained=False, **kwargs):
 
     """Following the architecture given in the paper:
     `"Rethinking the Inception Architecture for Computer Vision" <http://arxiv.org/abs/1512.00567>`_.
-
-    The model works with images of size 3 x 299 x 299.
 
     Args:
         pretrained (bool): If True, returns a model pre-trained previously on ImageNet
@@ -75,6 +74,7 @@ class Inception3(nn.Module):
     def forward(self, x):
         global aux
         print(x.shape)
+        # 32 x 32 x 3
         x = self.Conv2d_4a_3x3(x)
         x = self.Mixed_5b(x)
         x = self.Mixed_5c(x)
