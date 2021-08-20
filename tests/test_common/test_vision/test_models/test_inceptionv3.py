@@ -12,4 +12,4 @@ class TestInception3(unittest.TestCase):
         cls.model = Inception3(num_classes=10, aux_logits=True, transform_input=True)
 
     def test_step(self):
-        self.model.step([torch.randn(299, 299, 3, 3), torch.ones(4)])
+        self.model.step([torch.randn(32, 32, 3, 3), torch.ones(4)])
