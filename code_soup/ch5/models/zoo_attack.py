@@ -194,14 +194,14 @@ class ZooAttack:
         return l2_loss + self.config.const * confidence_loss
 
     # Adapted from original code
-    def max_pooling(self, orig_img: np.ndarray, patch_size: int):
-        img_pool = np.copy(orig_img)
-        img_x = orig_img.shape[0]
-        img_y = orig_img.shape[1]
+    def max_pooling(self, modifier: np.ndarray, patch_size: int):
+        img_pool = np.copy(modifier)
+        img_x = modifier.shape[0]
+        img_y = modifier.shape[1]
         for i in range(0, img_x, patch_size):
             for j in range(0, img_y, patch_size):
                 img_pool[i : i + patch_size, j : j + patch_size] = np.max(
-                    orig_img[i : i + patch_size, j : j + patch_size]
+                    modifier[i : i + patch_size, j : j + patch_size]
                 )
         return img_pool
 
