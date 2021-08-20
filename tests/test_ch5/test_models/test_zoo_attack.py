@@ -198,9 +198,13 @@ class TestZooAttackBasic(unittest.TestCase):
 
         self.assertEqual(loss.shape[0], temp_new_img.shape[0])
 
-        print(loss)
         # Integration Test
         self.assertTrue(np.allclose(np.array([0.2148518]), loss, atol=1e-5))
+
+    def test_zero_order_gradients(self):
+        losses = np.random.randn(2 * self.config.batch_size + 1)
+        grads = self.attack.zero_order_gradients(losses)
+        self.assertEqual(grads.shape, (self.config.batch_size,))
 
     def test_coordinate_adam(self):
         # Integration Test

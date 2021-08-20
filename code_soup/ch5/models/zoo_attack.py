@@ -200,7 +200,7 @@ class ZooAttack:
                 )
         return img_pool
 
-    def get_zero_order_gradients(self, losses: np.ndarray):
+    def zero_order_gradients(self, losses: np.ndarray):
         grad = np.zeros(self.config.batch_size)
         for i in range(self.config.batch_size):
             grad[i] = (losses[i * 2 + 1] - losses[i * 2 + 2]) / 0.0002
