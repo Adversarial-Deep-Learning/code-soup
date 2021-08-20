@@ -92,6 +92,34 @@ class Inception3(nn.Module):
             return _InceptionOutputs(x, aux)
         return x
 
+    def step(self, data: torch.Tensor) -> Tuple:
+        """
+        Iterates the model for a single batch of data, calculates the loss and updates the model parameters.
+        Parameters
+        ----------
+        data : torch.Tensor
+            Batch of data
+        Returns
+        -------
+            avg_out:
+            The average output (across the batch) of the model
+        """
+        image, _ = data
+        image = image.to(self.device)
+        batch_size = image.shape[0]
+        label = torch.full(
+            (batch_size,), self.label, dtype=torch.float, device=self.device
+        )
+        self.zero_grad()
+        # Forward pass
+        output = self(image).view(-1)
+        # Calculate loss on a batch
+        err = self.criterion(output, label)
+        err.backward()
+        avg_out = output.mean().item()
+        self.optimizer.step()
+        return avg_out
+
 
 class InceptionA(nn.Module):
     def __init__(self, in_channels, pool_features):
