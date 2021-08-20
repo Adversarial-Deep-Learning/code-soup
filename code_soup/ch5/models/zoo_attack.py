@@ -60,7 +60,9 @@ class ZooAttackConfig:
         self.batch_size = batch_size
         self.const = const
         self.confidence = confidence
-        self.early_stop_iters = early_stop_iters
+        self.early_stop_iters = (
+            early_stop_iters if early_stop_iters != 0 else max_iterations // 10
+        )
         self.adam_beta1 = adam_beta1
         self.adam_beta2 = adam_beta2
         self.use_importance = use_importance
@@ -110,10 +112,8 @@ class ZooAttack:
 
         # assert orig_img.shape == new_img.shape, "Images must be the same shape"
 
-        if new_img.ndim == 3:
-            dim = (0, 1, 2)
-        else:
-            dim = (1, 2, 3)
+        assert new_img.ndim == 4, "`new_img` must be a 4D tensor"
+        dim = (1, 2, 3)
 
         if self.config.use_tanh:
             return (
@@ -131,21 +131,10 @@ class ZooAttack:
             )
 
     def confidence_loss(self, new_img: torch.tensor, target: torch.tensor):
-
+        assert new_img.ndim == 4, "`new_img` must be of shape (N, H, W, C)"
         assert (
-            new_img.ndim == 3 or new_img.ndim == 4
-        ), "`new_img` must be of shape (N, H, W, C) or (H, W, C)"
-        assert (
-            target.ndim == 1 or target.ndim == 2
-        ), "`target` must be of shape (N,L)  or (L,) where L is number of classes"
-
-        # Reshape to 4D input/output pairs if the input is for a single image
-        if new_img.ndim == 3:
-            assert (
-                target.ndim == 1
-            ), "`target` must be of shape (L,) where L is number of classes when single image is passed."
-            new_img = new_img.unsqueeze(0)
-            target = target.unsqueeze(0)
+            target.ndim == 2
+        ), "`target` must be of shape (N,L) where L is number of classes"
 
         new_img = new_img.permute(0, 3, 1, 2)
 
@@ -181,17 +170,19 @@ class ZooAttack:
                 .numpy()
             )
 
-        if new_img.ndim == 3:
-            return output.squeeze(0)
-        else:
-            return output
+        return output, model_output
 
     def total_loss(
         self, orig_img: torch.tensor, new_img: torch.tensor, target: torch.tensor
     ):
         l2_loss = self.l2_distance_loss(orig_img, new_img)
-        confidence_loss = self.confidence_loss(new_img, target)
-        return l2_loss + self.config.const * confidence_loss
+        confidence_loss, model_output = self.confidence_loss(new_img, target)
+        return (
+            l2_loss + self.config.const * confidence_loss,
+            l2_loss,
+            confidence_loss,
+            model_output,
+        )
 
     # Adapted from original code
     def max_pooling(self, modifier: np.ndarray, patch_size: int):
@@ -247,7 +238,9 @@ class ZooAttack:
         self.adam_epochs[indices] = epochs + 1
 
     # Adapted from original code
-    def get_new_prob(self, modifier, max_pooling_ratio=8, gen_double=False):
+    def get_new_prob(
+        self, modifier: np.ndarray, max_pooling_ratio: int = 8, gen_double: bool = False
+    ):
         modifier = np.squeeze(modifier)
         old_shape = modifier.shape
         if gen_double:
@@ -272,22 +265,26 @@ class ZooAttack:
     # Adapted from original code
     def resize_img(
         self,
-        small_x,
-        small_y,
-        num_channels,
-        modifier,
-        max_pooling_ratio=8,
-        reset_only=False,
+        small_x: int,
+        small_y: int,
+        num_channels: int,
+        modifier: np.ndarray,
+        max_pooling_ratio: int = 8,
+        reset_only: bool = False,
     ):
+        assert modifier.ndim == 4, "Expected 4D array as modifier"
         small_single_shape = (small_x, small_y, num_channels)
-        if reset_only:
-            modifier = np.zeros((1,) + small_single_shape, dtype=np.float32)
-        else:
+
+        new_modifier = np.zeros((1,) + small_single_shape, dtype=np.float32)
+        if not reset_only:
             # run the resize_op once to get the scaled image
             prev_modifier = np.copy(modifier)
-            modifier = cv2.resize(
-                modifier, (small_x, small_y), interpolation=cv2.INTER_LINEAR
-            )
+            for k, v in enumerate(modifier):
+                new_modifier[k, :, :, :] = cv2.resize(
+                    modifier[k, :, :, :],
+                    (small_x, small_y),
+                    interpolation=cv2.INTER_LINEAR,
+                )
 
         # prepare the list of all valid variables
         var_size = np.prod(small_single_shape)
@@ -303,31 +300,92 @@ class ZooAttack:
             self.sample_prob = self.get_new_prob(prev_modifier, max_pooling_ratio, True)
             self.sample_prob = self.sample_prob.reshape(var_size)
 
-        return modifier
+        return new_modifier
 
-    # def single_step(self, iter, modifier, orig_img, target):
-    #     var = np.repeat(modifier, self.config.batch_size * 2 + 1, axis=0)
-    #     print(var.shape)
-    #     var_size = modifier.size
+    def single_step(
+        self,
+        modifier: np.ndarray,
+        orig_img: torch.tensor,
+        target: torch.tensor,
+        var_indice: list = None,
+    ):
 
-    #     print(self.var_list.size)
-    #     # Select indices for current iteration
-    #     if self.config.use_importance:
-    #         var_indice = np.random.choice(
-    #             self.var_list.size,
-    #             self.config.batch_size,
-    #             replace=False,
-    #             p=self.sample_prob,
-    #         )
+        assert modifier.ndim == 4, "Expected 4D array as modifier"
+        assert modifier.shape[0] == 1, "Expected 1 batch for modifier"
+        assert target.ndim == 2, "Expected 2D tensor as target"
+
+        var = np.repeat(modifier, self.config.batch_size * 2 + 1, axis=0)
+        var_size = modifier.size
+
+        # Select indices for current iteration
+
+        if var_indice is None:
+            if self.config.use_importance:
+                var_indice = np.random.choice(
+                    self.var_list.size,
+                    self.config.batch_size,
+                    replace=False,
+                    p=self.sample_prob,
+                )
+            else:
+                var_indice = np.random.choice(
+                    self.var_list.size, self.config.batch_size, replace=False
+                )
+        indices = self.var_list[var_indice]
+
+        for i in range(self.config.batch_size):
+            var[i * 2 + 1].reshape(-1)[indices[i]] += 0.0001
+            var[i * 2 + 2].reshape(-1)[indices[i]] -= 0.0001
+
+        new_img = self.get_perturbed_image(orig_img, var)
+        losses, l2_losses, confidence_losses, model_output = self.total_loss(
+            orig_img, new_img, target
+        )
+
+        if modifier.shape[0] > self.config.init_size:
+            self.sample_prob = self.get_new_prob(self.real_modifier)
+            self.sample_prob = self.sample_prob.reshape(var_size)
+
+        grad = self.zero_order_gradients(losses)
+
+        # Modifier is updated here, so is adam epochs, mt_arr, and vt_arr
+        self.coordinate_adam(indices, grad, modifier, not self.config.use_tanh)
+
+        return (
+            losses[0],
+            l2_losses[0],
+            confidence_losses[0],
+            model_output[0],
+            new_img[0],
+        )
+
+    # def iterative_attack(self, orig_img: np.ndarray, target:np.ndarray, modifier_init:np.ndarray=None):
+
+    #     assert orig_img.ndim == 3, "Expected 3D array as image"
+    #     assert target.ndim == 1, "Expected 1D array as target"
+
+    #     if modifier_init is not None:
+    #         assert modifier_init.ndim ==3, "Expected 3D array as modifier"
+    #         modifier = modifier_init
     #     else:
-    #         var_indice = np.random.choice(
-    #             self.var_list.size, self.config.batch_size, replace=False
-    #         )
-    #     indice = self.var_list[var_indice]
+    #         modifier = np.zeros(orig_img.shape, dtype=np.float32)
 
-    #     for i in range(self.config.batch_size):
-    #         var[i * 2 + 1].reshape(-1)[indice[i]] += 0.0001
-    #         var[i * 2 + 2].reshape(-1)[indice[i]] -= 0.0001
+    #     if self.config.use_tang:
+    #         orig_img = np.arctanh(orig_img*1.999999)
 
-    #     new_img = self.get_perturbed_image(orig_img, var)
-    #     losses = self.total_loss(orig_img, new_img, target)
+    #     var_size = np.prod(orig_img.shape)  # width * height * num_channels
+    #     self.var_list = np.array(range(0, var_size), dtype=np.int32)
+
+    #     # Initialize Adam optimizer values
+    #     self.mt_arr = np.zeros(var_size, dtype=np.float32)
+    #     self.vt_arr = np.zeros(var_size, dtype=np.float32)
+    #     self.adam_epochs = np.ones(var_size, dtype=np.int64)
+    #     self.up = np.zeros(var_size, dtype=np.float32)
+    #     self.down = np.zeros(var_size, dtype=np.float32)
+
+    #     # Sampling Probabilities
+    #     self.sample_prob = np.ones(var_size, dtype=np.float32) / var_size
+
+    #     # Make Everything 4D and Tensorize
+    #     orig_img = orig_img.to(self.device)
+    #     target = target.to(self.device)
