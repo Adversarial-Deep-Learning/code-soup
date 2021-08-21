@@ -1,5 +1,6 @@
 # Importing the libraries
 from collections import namedtuple
+from typing import Tuple
 
 import torch
 import torch.nn as nn
