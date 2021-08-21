@@ -101,7 +101,7 @@ class TestZooAttack(unittest.TestCase):
             batch_size=4,
             init_size=4,
             max_iterations=100,
-            binary_search_steps=3,
+            binary_search_steps=1,
             reset_adam_after_found=True,
         )
         cls.model = nn.Sequential(
