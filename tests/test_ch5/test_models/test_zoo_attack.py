@@ -1151,7 +1151,6 @@ class TestZooAttack(unittest.TestCase):
         self.assertFalse(np.allclose(modifier, self.modifier, atol=1e-5))
 
         self.assertEqual(new_img.shape, self.modifier.shape[1:])
-       
 
     def test_attack(self):
         attack = deepcopy(self.attack)
