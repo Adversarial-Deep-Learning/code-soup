@@ -1,5 +1,6 @@
 numpy==1.21.1
 Pillow==8.3.1
+tensorflow-hub==0.8.0
 torch==1.9.0
 torchvision==0.10.0
 parameterized==0.8.1
