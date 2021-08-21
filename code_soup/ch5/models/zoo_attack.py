@@ -260,7 +260,7 @@ class ZooAttack:
         m[indices] = old_val
         self.adam_epochs[indices] = epochs + 1
 
-        return m.reshape(modifier.shape)
+        # return m.reshape(modifier.shape)
 
     # Adapted from original code
     def get_new_prob(
@@ -386,9 +386,7 @@ class ZooAttack:
         grad = self.zero_order_gradients(losses)
 
         # Modifier is updated here, so is adam epochs, mt_arr, and vt_arr
-        modifier = self.coordinate_adam(
-            indices, grad, modifier, not self.config.use_tanh
-        )
+        self.coordinate_adam(indices, grad, modifier, not self.config.use_tanh)
 
         return (
             losses[0],
@@ -396,7 +394,6 @@ class ZooAttack:
             confidence_losses[0],
             model_output[0].detach().numpy(),
             new_img[0],
-            modifier,
         )
 
     def attack(
@@ -546,7 +543,6 @@ class ZooAttack:
                     confidence_loss,
                     model_output,
                     adv_img,
-                    modifier,
                 ) = self.single_step(
                     modifier, orig_img, target, mid, max_pooling_ratio=max_pooling_ratio
                 )
