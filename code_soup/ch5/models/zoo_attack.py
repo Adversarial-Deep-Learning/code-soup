@@ -374,12 +374,12 @@ class ZooAttack:
 
         if modifier_init is not None:
             assert modifier_init.ndim == 3, "Expected 3D array as modifier"
-            modifier = modifier_init
+            modifier = modifier_init.copy()
         else:
             if self.config.use_resize:
                 modifier = self.resize_img(
-                    self.config.resize_init_size,
-                    self.config.resize_init_size,
+                    self.config.init_size,
+                    self.config.init_size,
                     3,
                     modifier_init,
                     max_pooling_ratio,
@@ -435,12 +435,13 @@ class ZooAttack:
 
             if modifier_init is not None:
                 assert modifier_init.ndim == 3, "Expected 3D array as modifier"
-                modifier = modifier_init
+                modifier = modifier_init.copy()
+                modifier = modifier.reshape((-1,) + modifier.shape)
             else:
                 if self.config.use_resize:
                     modifier = self.resize_img(
-                        self.config.resize_init_size,
-                        self.config.resize_init_size,
+                        self.config.init_size,
+                        self.config.init_size,
                         3,
                         modifier_init,
                         max_pooling_ratio,

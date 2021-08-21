@@ -96,7 +96,7 @@ class TestZooAttack(unittest.TestCase):
         cls.config = ZooAttackConfig(
             batch_size=4,
             init_size=4,
-            max_iterations=1000,
+            max_iterations=100,
             binary_search_steps=5,
             reset_adam_after_found=True,
         )
@@ -231,6 +231,18 @@ class TestZooAttack(unittest.TestCase):
 
         self.assertEqual(loss.shape[0], temp_new_img.shape[0])
 
+        # With Log and Untargeted
+        attack = deepcopy(self.attack)
+        attack.config.use_log = True
+        attack.config.targeted = False
+
+        new_img_2 = attack.get_perturbed_image(self.orig_img, self.modifier)
+        temp_new_img = new_img_2.unsqueeze(0)
+        labels = self.labels.unsqueeze(0)
+        loss_2, model_output = attack.confidence_loss(temp_new_img, labels)
+
+        self.assertEqual(loss_2.shape[0], temp_new_img.shape[0])
+
         # Integration Test
         self.assertTrue(np.allclose(np.array([0.2148518]), loss, atol=1e-5))
 
@@ -298,13 +310,240 @@ class TestZooAttack(unittest.TestCase):
 
     def test_coordinate_adam(self):
 
+        # With Proj True
+        attack = deepcopy(self.attack)
+        attack.config.use_tanh = False
+        attack.up = 0.5 - self.orig_img.numpy().reshape(-1)
+        attack.down = -0.5 - self.orig_img.numpy().reshape(-1)
+        indices = np.array([15, 24, 32, 45])
+
+        grad = np.array([2000.0, 3500.0, -1000.0, -1500.0])
+
+        proj = not attack.config.use_tanh
+
+        modifier = deepcopy(self.modifier)
+
+        attack.coordinate_adam(indices, grad, modifier, proj)
+
+        self.assertTrue(
+            np.allclose(
+                attack.mt_arr,
+                np.array(
+                    [
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        200.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        350.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        -100.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        -150.0,
+                        0.0,
+                        0.0,
+                    ],
+                ),
+                atol=1e-5,
+            )
+        )
+
+        self.assertTrue(
+            np.allclose(
+                attack.vt_arr,
+                np.array(
+                    [
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        4000.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        12250.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        1000.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        2250.0,
+                        0.0,
+                        0.0,
+                    ],
+                ),
+                atol=1e-5,
+            )
+        )
+
+        self.assertTrue(
+            np.allclose(
+                modifier,
+                np.array(
+                    [
+                        [
+                            [-0.21563086, 0.54629284, 1.0879989],
+                            [-0.17234534, 0.37302095, 1.5072422],
+                            [-0.14709516, -0.08446954, -1.0199878],
+                            [-0.46581882, 0.41346493, -1.6357177],
+                        ],
+                        [
+                            [0.97039294, -0.46038368, -0.5377948],
+                            [0.55406415, -1.4017423, -0.6447743],
+                            [-0.6031785, -2.003339, -0.01103557],
+                            [0.41714168, -1.94303, 0.6685426],
+                        ],
+                        [
+                            [1.4404864, 0.79823476, 0.2532903],
+                            [-0.76351106, 0.90984505, 1.331635],
+                            [-1.1300149, -0.8444777, -0.6152072],
+                            [1.0166003, 0.9233805, 0.98315567],
+                        ],
+                        [
+                            [-0.88205546, -0.3438152, -0.36559045],
+                            [0.56274384, 1.5836877, -1.2370849],
+                            [1.4234338, -0.5929535, -1.3011148],
+                            [-0.55921733, 0.90161383, 0.80880517],
+                        ],
+                    ]
+                ),
+                atol=1e-5,
+            )
+        )
+
+        self.assertTrue(
+            (
+                attack.adam_epochs
+                == np.array(
+                    [
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        2,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        2,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        2,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                        2,
+                        1,
+                        1,
+                    ],
+                )
+            ).all(),
+        )
+
         # Integration Test
+        # Without Proj True
         attack = deepcopy(self.attack)
         indices = np.array([15, 24, 32, 45])
 
         grad = np.array([2000.0, 3500.0, -1000.0, -1500.0])
 
-        proj = not self.config.use_tanh
+        proj = not attack.config.use_tanh
 
         modifier = deepcopy(self.modifier)
 
@@ -562,10 +801,21 @@ class TestZooAttack(unittest.TestCase):
         )
 
     def test_resize_img(self):
+        # Reset Only True
+
+        attack = deepcopy(self.attack)
+        modifier = self.modifier.reshape((-1,) + self.modifier.shape)
+        new_modifier = attack.resize_img(8, 8, 3, modifier, 2, reset_only=True)
+
+        self.assertEqual(new_modifier.shape, (1, 8, 8, 3))
+
+        self.assertEqual(attack.sample_prob.shape, np.prod(8 * 8 * 3))
+
+        # Reset Only False
         attack = deepcopy(self.attack)
         modifier = self.modifier.reshape((-1,) + self.modifier.shape)
         new_modifier = attack.resize_img(8, 8, 3, modifier, 2)
-        print(new_modifier)
+
         self.assertEqual(new_modifier.shape, (1, 8, 8, 3))
 
         self.assertEqual(attack.sample_prob.shape, np.prod(8 * 8 * 3))
@@ -868,6 +1118,35 @@ class TestZooAttack(unittest.TestCase):
         )
 
     def test_single_step(self):
+
+        # Random Without Importance
+        attack = deepcopy(self.attack)
+        attack.config.use_importance = False
+        modifier = deepcopy(self.modifier).reshape((-1,) + self.modifier.shape)
+
+        target = self.labels.reshape((-1,) + self.labels.shape)
+        (
+            total_loss,
+            l2_loss,
+            confidence_loss,
+            model_output,
+            new_img,
+        ) = attack.single_step(
+            modifier,
+            self.orig_img,
+            target,
+            self.config.initial_const,
+        )
+
+        self.assertFalse(
+            np.allclose(
+                modifier, self.modifier.reshape((-1,) + self.modifier.shape), atol=1e-5
+            )
+        )
+
+        self.assertEqual(new_img.shape, self.modifier.shape)
+
+        # With Custom Indices
         attack = deepcopy(self.attack)
         modifier = deepcopy(self.modifier).reshape((-1,) + self.modifier.shape)
 
@@ -1114,6 +1393,28 @@ class TestZooAttack(unittest.TestCase):
         attack = deepcopy(self.attack)
         orig_img = deepcopy(self.orig_img.numpy())
         orig_img /= 10 * np.max(orig_img)
+        outer_best_adv, outer_best_const = attack.attack(
+            orig_img, self.labels.numpy(), max_pooling_ratio=2
+        )
+
+        self.assertEqual(outer_best_adv.shape, self.modifier.shape)
+
+        # With modifier init
+        attack = deepcopy(self.attack)
+        outer_best_adv, outer_best_const = attack.attack(
+            orig_img,
+            self.labels.numpy(),
+            modifier_init=self.modifier,
+            max_pooling_ratio=2,
+        )
+
+        self.assertEqual(outer_best_adv.shape, self.modifier.shape)
+
+        # With use resize and without tanh and untargeted
+        attack = deepcopy(self.attack)
+        attack.config.use_resize = True
+        attack.config.tanh = False
+        attack.config.targeted = False
         outer_best_adv, outer_best_const = attack.attack(
             orig_img, self.labels.numpy(), max_pooling_ratio=2
         )
