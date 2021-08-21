@@ -1404,7 +1404,7 @@ class TestZooAttack(unittest.TestCase):
         attack = deepcopy(self.attack)
         attack.config.use_resize = True
         attack.config.max_iterations = 10001
-
+        attack.config.abort_early = False
         attack.config.targeted = False
 
         orig_img = deepcopy(self.orig_img[0].numpy())
