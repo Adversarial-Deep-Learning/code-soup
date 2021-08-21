@@ -1403,7 +1403,8 @@ class TestZooAttack(unittest.TestCase):
         # With use resize and untargeted and max iterations 10k
         attack = deepcopy(self.attack)
         attack.config.use_resize = True
-        attack.config.max_iterations = 10001
+        attack.config.resize_iter_1 = 20
+        attack.config.resize_iter_2 = 80
         attack.config.abort_early = False
         attack.config.targeted = False
 

@@ -30,6 +30,8 @@ class ZooAttackConfig:
         use_resize=False,
         init_size=32,
         adam_eps=1e-8,
+        resize_iter_1=2000,
+        resize_iter_2=10000,
     ):
         self.binary_search_steps = binary_search_steps
         self.max_iterations = max_iterations
@@ -53,6 +55,8 @@ class ZooAttackConfig:
         self.use_resize = use_resize
         self.init_size = init_size
         self.adam_eps = adam_eps
+        self.resize_iter_1 = resize_iter_1
+        self.resize_iter_2 = resize_iter_2
 
 
 class ZooAttack:
@@ -506,7 +510,7 @@ class ZooAttack:
             # NOTE: Original code allows for a custom start point in iterations
             for iter in range(0, self.config.max_iterations):
                 if self.config.use_resize:
-                    if iter == 2000:
+                    if iter == self.config.resize_iter_1:
                         modifier = self.resize_img(
                             self.config.init_size * 2,
                             self.config.init_size * 2,
@@ -514,7 +518,7 @@ class ZooAttack:
                             modifier,
                             max_pooling_ratio,
                         )
-                    if iter == 10000:
+                    if iter == self.config.resize_iter_2:
                         modifier = self.resize_img(
                             self.config.init_size * 4,
                             self.config.init_size * 4,
