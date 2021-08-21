@@ -9,7 +9,7 @@ __all__ = ["Inception3", "inception_v3"]
 _InceptionOutputs = namedtuple("InceptionOutputs", ["logits", "aux_logits"])
 
 
-# implemented against the CIFAR-10 dataset
+# Implemented to work for the CIFAR-10 dataset (32 x 32, 3 channel images)
 def inception_v3(pretrained=False, **kwargs):
 
     """Following the architecture given in the paper:
