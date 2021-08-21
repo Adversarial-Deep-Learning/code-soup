@@ -474,7 +474,8 @@ class ZooAttack:
                     ) = self.total_loss(orig_img, new_img, target, mid)
                     print(
                         f"iter = {iter}, cost = {eval_costs},  size = {modifier.shape}, "
-                        f"total_loss = {total_losses[0]:.5g}, l2_loss = {l2_losses[0]:.5g}, confidence_loss = {confidence_losses[0]:.5g}"
+                        f"total_loss = {total_losses[0]:.5g}, l2_loss = {l2_losses[0]:.5g}, "
+                        f"confidence_loss = {confidence_losses[0]:.5g}"
                     )
 
                 (

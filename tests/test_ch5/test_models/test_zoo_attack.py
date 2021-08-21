@@ -154,6 +154,18 @@ class TestZooAttack(unittest.TestCase):
         output = torch.tanh(self.orig_img + self.modifier) / 2
         self.assertTrue(torch.allclose(perturbed_image, output, atol=1e-5))
 
+        # Without Tanh
+        attack = deepcopy(self.attack)
+        attack.config.use_tanh = False
+
+        perturbed_image_2 = attack.get_perturbed_image(
+            self.orig_img, torch.from_numpy(self.modifier)
+        )
+        self.assertEqual(perturbed_image_2.shape, self.orig_img.shape)
+
+        output_2 = self.orig_img + torch.from_numpy(self.modifier)
+        self.assertTrue(torch.allclose(perturbed_image_2, output_2, atol=1e-5))
+
         # Integration Test
         self.assertTrue(
             torch.allclose(
@@ -195,6 +207,18 @@ class TestZooAttack(unittest.TestCase):
         temp_new_img = new_img.unsqueeze(0)
         loss = self.attack.l2_distance_loss(temp_orig_img, temp_new_img)
         self.assertEqual(loss.shape[0], temp_orig_img.shape[0])
+
+        # Without Tanh
+        attack = deepcopy(self.attack)
+        attack.config.use_tanh = False
+
+        new_img_2 = attack.get_perturbed_image(
+            self.orig_img, torch.from_numpy(self.modifier)
+        )
+        temp_orig_img = self.orig_img.unsqueeze(0)
+        temp_new_img = new_img_2.unsqueeze(0)
+        loss_2 = attack.l2_distance_loss(temp_orig_img, temp_new_img)
+        self.assertEqual(loss_2.shape[0], temp_orig_img.shape[0])
 
         # Integration Test
         self.assertTrue(np.allclose(np.array([3.7336116]), loss, atol=1e-5))
