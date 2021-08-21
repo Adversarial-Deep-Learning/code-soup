@@ -99,6 +99,7 @@ class Inception3(nn.Module):
             return _InceptionOutputs(x, aux)
         return x
 
+    # for implementing the test case
     def step(self, data: torch.Tensor) -> Tuple:
         """
         Iterates the model for a single batch of data, calculates the loss and updates the model parameters.
