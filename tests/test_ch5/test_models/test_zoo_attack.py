@@ -4,6 +4,7 @@ from copy import deepcopy
 import numpy as np
 import torch
 import torch.nn as nn
+import torchvision
 
 from code_soup.ch5.models.zoo_attack import ZooAttack, ZooAttackConfig
 
@@ -26,7 +27,7 @@ class TestZooAttackConfig(unittest.TestCase):
         self.assertEqual(self.config.init_size, 4)
 
 
-class TestZooAttackBasic(unittest.TestCase):
+class TestZooAttack(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
 
@@ -92,7 +93,7 @@ class TestZooAttackBasic(unittest.TestCase):
 
         cls.labels = torch.tensor([0, 1])
 
-        cls.config = ZooAttackConfig(batch_size=4, init_size=4)
+        cls.config = ZooAttackConfig(batch_size=4, init_size=4, max_iterations=1000, binary_search_steps=5, reset_adam_after_found=True)
         cls.model = nn.Sequential(
             nn.Conv2d(
                 in_channels=3, out_channels=1, kernel_size=2, padding=0, bias=False
@@ -215,7 +216,7 @@ class TestZooAttackBasic(unittest.TestCase):
         labels = self.labels.unsqueeze(0)
 
         loss, l2_loss, confidence_loss, model_output = self.attack.total_loss(
-            temp_orig_img, temp_new_img, labels
+            temp_orig_img, temp_new_img, labels, self.config.initial_const
         )
         self.assertEqual(loss.shape[0], temp_orig_img.shape[0])
 
@@ -849,7 +850,7 @@ class TestZooAttackBasic(unittest.TestCase):
             confidence_loss,
             model_output,
             new_img,
-        ) = attack.single_step(modifier, self.orig_img, target, var_indice=indices)
+        ) = attack.single_step(modifier, self.orig_img, target, self.config.initial_const, var_indice=indices)
 
         self.assertFalse(
             np.allclose(
@@ -1072,3 +1073,11 @@ class TestZooAttackBasic(unittest.TestCase):
                 )
             ).all(),
         )
+
+    def test_attack(self):
+        attack = deepcopy(self.attack)
+        orig_img = deepcopy(self.orig_img.numpy())
+        orig_img /= 10*np.max(orig_img)
+        outer_best_adv, outer_best_const = attack.attack(orig_img, self.labels.numpy(), max_pooling_ratio = 2)
+
+        self.assertEqual(outer_best_adv.shape, self.modifier.shape)

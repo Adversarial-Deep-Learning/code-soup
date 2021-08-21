@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from PIL import Image
+import random
 
 
 class ZooAttackConfig:
@@ -332,7 +333,7 @@ class ZooAttack:
         )
 
         if modifier.shape[0] > self.config.init_size:
-            self.sample_prob = self.get_new_prob(self.real_modifier)
+            self.sample_prob = self.get_new_prob(modifier)
             self.sample_prob = self.sample_prob.reshape(var_size)
 
         grad = self.zero_order_gradients(losses)
@@ -344,7 +345,7 @@ class ZooAttack:
             losses[0],
             l2_losses[0],
             confidence_losses[0],
-            model_output[0],
+            model_output[0].detach().numpy(),
             new_img[0],
         )
 
@@ -417,11 +418,11 @@ class ZooAttack:
         outer_best_adv = orig_img
 
         # Make Everything 4D and Tensorize
-        orig_img = orig_img.unsqueeze(0).to(self.device)
-        target = target.unsqueeze(0).to(self.device)
+        orig_img = torch.from_numpy(orig_img).unsqueeze(0).to(self.device)
+        target = torch.from_numpy(target).unsqueeze(0).to(self.device)
         modifier = modifier.reshape((-1,) + modifier.shape)
 
-        for outer_step in range(self.BINARY_SEARCH_STEPS):
+        for outer_step in range(self.config.binary_search_steps):
 
             best_l2 = 1e10
             best_score = -1
@@ -457,7 +458,7 @@ class ZooAttack:
 
             # NOTE: Original code allows for a custom start point in iterations
             for iter in range(0, self.config.max_iterations):
-                if self.use_resize:
+                if self.config.use_resize:
                     if iter == 2000:
                         modifier = self.resize_img(64, 64, 3, modifier)
                     if iter == 10000:
@@ -472,7 +473,7 @@ class ZooAttack:
                         model_output,
                     ) = self.total_loss(orig_img, new_img, target, mid)
                     print(
-                        f"iter = {iter}, cost = {eval_costs},  size = {self.real_modifier.shape}, total_loss = {total_losses[0]:.5g}, l2_loss = {l2_losses[0]:.5g}, confidence_loss = {confidence_losses[0]:.5g}"
+                        f"iter = {iter}, cost = {eval_costs},  size = {modifier.shape}, total_loss = {total_losses[0]:.5g}, l2_loss = {l2_losses[0]:.5g}, confidence_loss = {confidence_losses[0]:.5g}"
                     )
 
                 (
@@ -492,10 +493,12 @@ class ZooAttack:
                 ):
 
                     if self.config.reset_adam_after_found:
+                        print("Resetting Adam")
                         self.mt_arr.fill(0.0)
                         self.vt_arr.fill(0.0)
                         self.adam_epochs.fill(1)
-                    self.stage = 1
+                    print("Setting Stage to 1")
+                    stage = 1
 
                 last_confidence_loss = confidence_loss
 
@@ -514,7 +517,7 @@ class ZooAttack:
                 ):
                     outer_best_l2 = l2_loss
                     outer_best_score = np.argmax(model_output)
-                    outer_best_attack = adv_img
+                    outer_best_adv = adv_img
                     outer_best_const = mid
 
             if compare(best_score, np.argmax(target[0])) and best_score != -1:
@@ -533,4 +536,4 @@ class ZooAttack:
                     mid *= 10
                 print("new constant: ", mid)
 
-        return outer_best_attack, outer_best_const, outer_best_l2, outer_best_score
+        return outer_best_adv, outer_best_const
