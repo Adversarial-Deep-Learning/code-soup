@@ -1,3 +1,4 @@
+import random
 from typing import List
 
 import cv2
@@ -5,7 +6,6 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from PIL import Image
-import random
 
 
 class ZooAttackConfig:

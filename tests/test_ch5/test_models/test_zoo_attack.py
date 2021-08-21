@@ -93,7 +93,13 @@ class TestZooAttack(unittest.TestCase):
 
         cls.labels = torch.tensor([0, 1])
 
-        cls.config = ZooAttackConfig(batch_size=4, init_size=4, max_iterations=1000, binary_search_steps=5, reset_adam_after_found=True)
+        cls.config = ZooAttackConfig(
+            batch_size=4,
+            init_size=4,
+            max_iterations=1000,
+            binary_search_steps=5,
+            reset_adam_after_found=True,
+        )
         cls.model = nn.Sequential(
             nn.Conv2d(
                 in_channels=3, out_channels=1, kernel_size=2, padding=0, bias=False
@@ -850,7 +856,13 @@ class TestZooAttack(unittest.TestCase):
             confidence_loss,
             model_output,
             new_img,
-        ) = attack.single_step(modifier, self.orig_img, target, self.config.initial_const, var_indice=indices)
+        ) = attack.single_step(
+            modifier,
+            self.orig_img,
+            target,
+            self.config.initial_const,
+            var_indice=indices,
+        )
 
         self.assertFalse(
             np.allclose(
@@ -1077,7 +1089,9 @@ class TestZooAttack(unittest.TestCase):
     def test_attack(self):
         attack = deepcopy(self.attack)
         orig_img = deepcopy(self.orig_img.numpy())
-        orig_img /= 10*np.max(orig_img)
-        outer_best_adv, outer_best_const = attack.attack(orig_img, self.labels.numpy(), max_pooling_ratio = 2)
+        orig_img /= 10 * np.max(orig_img)
+        outer_best_adv, outer_best_const = attack.attack(
+            orig_img, self.labels.numpy(), max_pooling_ratio=2
+        )
 
         self.assertEqual(outer_best_adv.shape, self.modifier.shape)
