@@ -1,27 +1,10 @@
-import random
-from typing import List, Tuple, Union
+from typing import List
 
 import cv2
 import numpy as np
-import scipy
 import torch
 import torch.nn.functional as F
-import torchvision.datasets as datasets
 from PIL import Image
-from torch.utils.data import DataLoader, Dataset
-from torchvision import transforms
-
-
-def seed(value=42):
-    """Set random seed for everything.
-    Args:
-        value (int): Seed
-    """
-    np.random.seed(value)
-    torch.manual_seed(value)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    random.seed(value)
 
 
 class ZooAttackConfig:
@@ -173,12 +156,16 @@ class ZooAttack:
         return output, model_output
 
     def total_loss(
-        self, orig_img: torch.tensor, new_img: torch.tensor, target: torch.tensor
+        self,
+        orig_img: torch.tensor,
+        new_img: torch.tensor,
+        target: torch.tensor,
+        const: int,
     ):
         l2_loss = self.l2_distance_loss(orig_img, new_img)
         confidence_loss, model_output = self.confidence_loss(new_img, target)
         return (
-            l2_loss + self.config.const * confidence_loss,
+            l2_loss + const * confidence_loss,
             l2_loss,
             confidence_loss,
             model_output,
@@ -272,12 +259,13 @@ class ZooAttack:
         max_pooling_ratio: int = 8,
         reset_only: bool = False,
     ):
-        assert modifier.ndim == 4, "Expected 4D array as modifier"
+
         small_single_shape = (small_x, small_y, num_channels)
 
         new_modifier = np.zeros((1,) + small_single_shape, dtype=np.float32)
         if not reset_only:
             # run the resize_op once to get the scaled image
+            assert modifier.ndim == 4, "Expected 4D array as modifier"
             prev_modifier = np.copy(modifier)
             for k, v in enumerate(modifier):
                 new_modifier[k, :, :, :] = cv2.resize(
@@ -307,6 +295,7 @@ class ZooAttack:
         modifier: np.ndarray,
         orig_img: torch.tensor,
         target: torch.tensor,
+        const: int,
         var_indice: list = None,
     ):
 
@@ -339,7 +328,7 @@ class ZooAttack:
 
         new_img = self.get_perturbed_image(orig_img, var)
         losses, l2_losses, confidence_losses, model_output = self.total_loss(
-            orig_img, new_img, target
+            orig_img, new_img, target, const
         )
 
         if modifier.shape[0] > self.config.init_size:
@@ -359,33 +348,189 @@ class ZooAttack:
             new_img[0],
         )
 
-    # def iterative_attack(self, orig_img: np.ndarray, target:np.ndarray, modifier_init:np.ndarray=None):
+    def attack(
+        self,
+        orig_img: np.ndarray,
+        target: np.ndarray,
+        modifier_init: np.ndarray = None,
+        max_pooling_ratio=8,
+    ):
+        def compare(x, y):
+            if not isinstance(x, (float, int, np.int64)):
+                x = np.copy(x)
+                if self.config.targeted:
+                    x[y] -= self.config.confidence
+                else:
+                    x[y] += self.config.confidence
+                x = np.argmax(x)
+            if self.config.targeted:
+                return x == y
+            else:
+                return x != y
 
-    #     assert orig_img.ndim == 3, "Expected 3D array as image"
-    #     assert target.ndim == 1, "Expected 1D array as target"
+        assert orig_img.ndim == 3, "Expected 3D array as image"
+        assert target.ndim == 1, "Expected 1D array as target"
 
-    #     if modifier_init is not None:
-    #         assert modifier_init.ndim ==3, "Expected 3D array as modifier"
-    #         modifier = modifier_init
-    #     else:
-    #         modifier = np.zeros(orig_img.shape, dtype=np.float32)
+        if modifier_init is not None:
+            assert modifier_init.ndim == 3, "Expected 3D array as modifier"
+            modifier = modifier_init
+        else:
+            if self.config.use_resize:
+                modifier = self.resize_img(
+                    self.config.resize_init_size,
+                    self.config.resize_init_size,
+                    3,
+                    modifier_init,
+                    max_pooling_ratio,
+                    reset_only=True,
+                )
+            else:
+                modifier = np.zeros(orig_img.shape, dtype=np.float32)
 
-    #     if self.config.use_tang:
-    #         orig_img = np.arctanh(orig_img*1.999999)
+        if self.config.use_tanh:
+            orig_img = np.arctanh(orig_img * 1.999999)
 
-    #     var_size = np.prod(orig_img.shape)  # width * height * num_channels
-    #     self.var_list = np.array(range(0, var_size), dtype=np.int32)
+        var_size = np.prod(orig_img.shape)  # width * height * num_channels
+        self.var_list = np.array(range(0, var_size), dtype=np.int32)
 
-    #     # Initialize Adam optimizer values
-    #     self.mt_arr = np.zeros(var_size, dtype=np.float32)
-    #     self.vt_arr = np.zeros(var_size, dtype=np.float32)
-    #     self.adam_epochs = np.ones(var_size, dtype=np.int64)
-    #     self.up = np.zeros(var_size, dtype=np.float32)
-    #     self.down = np.zeros(var_size, dtype=np.float32)
+        # Initialize Adam optimizer values
+        self.mt_arr = np.zeros(var_size, dtype=np.float32)
+        self.vt_arr = np.zeros(var_size, dtype=np.float32)
+        self.adam_epochs = np.ones(var_size, dtype=np.int64)
+        self.up = np.zeros(var_size, dtype=np.float32)
+        self.down = np.zeros(var_size, dtype=np.float32)
 
-    #     # Sampling Probabilities
-    #     self.sample_prob = np.ones(var_size, dtype=np.float32) / var_size
+        # Sampling Probabilities
+        self.sample_prob = np.ones(var_size, dtype=np.float32) / var_size
 
-    #     # Make Everything 4D and Tensorize
-    #     orig_img = orig_img.to(self.device)
-    #     target = target.to(self.device)
+        low = 0.0
+        mid = self.config.initial_const
+        high = 1e10
+
+        if not self.config.use_tanh:
+            self.up = 0.5 - orig_img.reshape(-1)
+            self.down = -0.5 - orig_img.reshape(-1)
+
+        outer_best_const = mid
+        outer_best_l2 = 1e10
+        outer_best_score = -1
+        outer_best_adv = orig_img
+
+        # Make Everything 4D and Tensorize
+        orig_img = orig_img.unsqueeze(0).to(self.device)
+        target = target.unsqueeze(0).to(self.device)
+        modifier = modifier.reshape((-1,) + modifier.shape)
+
+        for outer_step in range(self.BINARY_SEARCH_STEPS):
+
+            best_l2 = 1e10
+            best_score = -1
+
+            # NOTE: In the original implemenation there is a step to move mid to high
+            # at last step with some condition
+
+            prev = 1e6
+            last_confidence_loss = 1.0
+
+            if modifier_init is not None:
+                assert modifier_init.ndim == 3, "Expected 3D array as modifier"
+                modifier = modifier_init
+            else:
+                if self.config.use_resize:
+                    modifier = self.resize_img(
+                        self.config.resize_init_size,
+                        self.config.resize_init_size,
+                        3,
+                        modifier_init,
+                        max_pooling_ratio,
+                        reset_only=True,
+                    )
+                else:
+                    modifier = np.zeros(orig_img.shape, dtype=np.float32)
+
+            self.mt_arr.fill(0.0)
+            self.vt_arr.fill(0.0)
+            self.adam_epochs.fill(1)
+            stage = 0
+            multiplier = 1
+            eval_costs = 0
+
+            # NOTE: Original code allows for a custom start point in iterations
+            for iter in range(0, self.config.max_iterations):
+                if self.use_resize:
+                    if iter == 2000:
+                        modifier = self.resize_img(64, 64, 3, modifier)
+                    if iter == 10000:
+                        modifier = self.resize_img(128, 128, 3, modifier)
+
+                if iter % (self.config.max_iterations // 10) == 0:
+                    new_img = self.get_perturbed_image(orig_img, modifier)
+                    (
+                        total_losses,
+                        l2_losses,
+                        confidence_losses,
+                        model_output,
+                    ) = self.total_loss(orig_img, new_img, target, mid)
+                    print(
+                        f"iter = {iter}, cost = {eval_costs},  size = {self.real_modifier.shape}, total_loss = {total_losses[0]:.5g}, l2_loss = {l2_losses[0]:.5g}, confidence_loss = {confidence_losses[0]:.5g}"
+                    )
+
+                (
+                    total_loss,
+                    l2_loss,
+                    confidence_loss,
+                    model_output,
+                    adv_img,
+                ) = self.single_step(modifier, orig_img, target, mid)
+
+                eval_costs += self.config.batch_size
+
+                if (
+                    confidence_loss == 0.0
+                    and last_confidence_loss != 0.0
+                    and stage == 0
+                ):
+
+                    if self.config.reset_adam_after_found:
+                        self.mt_arr.fill(0.0)
+                        self.vt_arr.fill(0.0)
+                        self.adam_epochs.fill(1)
+                    self.stage = 1
+
+                last_confidence_loss = confidence_loss
+
+                if self.config.abort_early and iter % self.config.early_stop_iters == 0:
+                    if total_loss > prev * 0.9999:
+                        print("Early stopping because there is no improvement")
+                        break
+                    prev = total_loss
+
+                if l2_loss < best_l2 and compare(model_output, np.argmax(target[0])):
+                    best_l2 = l2_loss
+                    best_score = np.argmax(model_output)
+
+                if l2_loss < outer_best_l2 and compare(
+                    model_output, np.argmax(target[0])
+                ):
+                    outer_best_l2 = l2_loss
+                    outer_best_score = np.argmax(model_output)
+                    outer_best_attack = adv_img
+                    outer_best_const = mid
+
+            if compare(best_score, np.argmax(target[0])) and best_score != -1:
+
+                print("Old Constant: ", mid)
+                high = min(high, mid)
+                if high < 1e9:
+                    mid = (low + high) / 2
+                print("New Constant: ", mid)
+            else:
+                print("Old Constant: ", mid)
+                low = max(low, mid)
+                if high < 1e9:
+                    mid = (low + high) / 2
+                else:
+                    mid *= 10
+                print("new constant: ", mid)
+
+        return outer_best_attack, outer_best_const, outer_best_l2, outer_best_score
