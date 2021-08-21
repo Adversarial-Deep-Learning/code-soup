@@ -297,6 +297,7 @@ class ZooAttack:
         orig_img: torch.tensor,
         target: torch.tensor,
         const: int,
+        max_pooling_ratio: int = 8,
         var_indice: list = None,
     ):
 
@@ -332,8 +333,10 @@ class ZooAttack:
             orig_img, new_img, target, const
         )
 
-        if modifier.shape[0] > self.config.init_size:
-            self.sample_prob = self.get_new_prob(modifier)
+        if modifier.shape[1] > self.config.init_size:
+            print(modifier.shape)
+            print(max_pooling_ratio)
+            self.sample_prob = self.get_new_prob(modifier, max_pooling_ratio=max_pooling_ratio)
             self.sample_prob = self.sample_prob.reshape(var_size)
 
         grad = self.zero_order_gradients(losses)
@@ -354,7 +357,7 @@ class ZooAttack:
         orig_img: np.ndarray,
         target: np.ndarray,
         modifier_init: np.ndarray = None,
-        max_pooling_ratio=8,
+        max_pooling_ratio:int = 8,
     ):
         def compare(x, y):
             if not isinstance(x, (float, int, np.int64)):
@@ -454,16 +457,15 @@ class ZooAttack:
             self.vt_arr.fill(0.0)
             self.adam_epochs.fill(1)
             stage = 0
-            multiplier = 1
             eval_costs = 0
 
             # NOTE: Original code allows for a custom start point in iterations
             for iter in range(0, self.config.max_iterations):
                 if self.config.use_resize:
                     if iter == 2000:
-                        modifier = self.resize_img(64, 64, 3, modifier)
+                        modifier = self.resize_img(self.config.init_size*2, self.config.init_size*2, 3, modifier, max_pooling_ratio)
                     if iter == 10000:
-                        modifier = self.resize_img(128, 128, 3, modifier)
+                        modifier = self.resize_img(self.config.init_size*4, self.config.init_size*4, 3, modifier, max_pooling_ratio)
 
                 if iter % (self.config.max_iterations // 10) == 0:
                     new_img = self.get_perturbed_image(orig_img, modifier)
@@ -485,7 +487,7 @@ class ZooAttack:
                     confidence_loss,
                     model_output,
                     adv_img,
-                ) = self.single_step(modifier, orig_img, target, mid)
+                ) = self.single_step(modifier, orig_img, target, mid, max_pooling_ratio=max_pooling_ratio)
 
                 eval_costs += self.config.batch_size
 

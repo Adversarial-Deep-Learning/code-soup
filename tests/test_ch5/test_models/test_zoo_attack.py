@@ -97,7 +97,7 @@ class TestZooAttack(unittest.TestCase):
             batch_size=4,
             init_size=4,
             max_iterations=100,
-            binary_search_steps=5,
+            binary_search_steps=1,
             reset_adam_after_found=True,
         )
         cls.model = nn.Sequential(
@@ -1119,9 +1119,10 @@ class TestZooAttack(unittest.TestCase):
 
     def test_single_step(self):
 
-        # Random Without Importance
+        # Random Without Importance and init size reduce
         attack = deepcopy(self.attack)
         attack.config.use_importance = False
+        attack.config.init_size = 2
         modifier = deepcopy(self.modifier).reshape((-1,) + self.modifier.shape)
 
         target = self.labels.reshape((-1,) + self.labels.shape)
@@ -1136,6 +1137,7 @@ class TestZooAttack(unittest.TestCase):
             self.orig_img,
             target,
             self.config.initial_const,
+            max_pooling_ratio=2,
         )
 
         self.assertFalse(
@@ -1165,6 +1167,7 @@ class TestZooAttack(unittest.TestCase):
             target,
             self.config.initial_const,
             var_indice=indices,
+            max_pooling_ratio=2,
         )
 
         self.assertFalse(
@@ -1392,7 +1395,17 @@ class TestZooAttack(unittest.TestCase):
     def test_attack(self):
         attack = deepcopy(self.attack)
         orig_img = deepcopy(self.orig_img.numpy())
-        orig_img /= 10 * np.max(orig_img)
+        orig_img /= (10 * np.max(orig_img))
+        outer_best_adv, outer_best_const = attack.attack(
+            orig_img, self.labels.numpy(), max_pooling_ratio=2
+        )
+
+        self.assertEqual(outer_best_adv.shape, self.modifier.shape)
+
+        # Without x10
+        attack = deepcopy(self.attack)
+        orig_img = deepcopy(self.orig_img.numpy())
+        orig_img /= (100*np.max(orig_img))
         outer_best_adv, outer_best_const = attack.attack(
             orig_img, self.labels.numpy(), max_pooling_ratio=2
         )
@@ -1410,13 +1423,18 @@ class TestZooAttack(unittest.TestCase):
 
         self.assertEqual(outer_best_adv.shape, self.modifier.shape)
 
-        # With use resize and without tanh and untargeted
+
+        # With use resize and without tanh and untargeted and max iterations 10k
         attack = deepcopy(self.attack)
         attack.config.use_resize = True
-        attack.config.tanh = False
+        attack.config.max_iterations = 10001
+        attack.config.use_tanh = False
         attack.config.targeted = False
+
+        orig_img = deepcopy(self.orig_img.numpy())
+        orig_img /= (10 * np.max(orig_img))
         outer_best_adv, outer_best_const = attack.attack(
             orig_img, self.labels.numpy(), max_pooling_ratio=2
         )
-
         self.assertEqual(outer_best_adv.shape, self.modifier.shape)
+        self.assertTrue(False)
