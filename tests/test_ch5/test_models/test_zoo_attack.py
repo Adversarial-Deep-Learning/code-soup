@@ -34,29 +34,31 @@ class TestZooAttack(unittest.TestCase):
         cls.orig_img = torch.tensor(
             [
                 [
-                    [-1.6505998, -1.0305759, 1.0229983],
-                    [-0.49261865, 1.0394262, -2.0290275],
-                    [0.21951008, -2.1673787, -0.38990623],
-                    [-0.2866124, 1.0799991, -0.11442444],
-                ],
-                [
-                    [-0.7052935, -0.5529446, 0.26524046],
-                    [-1.0540642, 0.6887131, 1.6723113],
-                    [1.1097006, 2.1335971, 0.9231482],
-                    [0.37910375, -0.12366215, -0.25093704],
-                ],
-                [
-                    [-1.9404864, -1.3078933, 0.88476175],
-                    [0.35099706, -1.254437, 0.05408821],
-                    [0.7342985, -0.43663985, 0.11520719],
-                    [-0.07479854, -2.5859993, 1.4102333],
-                ],
-                [
-                    [0.21304935, -0.3496548, -0.19856042],
-                    [-0.434919, -0.27774376, 1.1471609],
-                    [1.4504786, 0.67261624, -0.23560882],
-                    [1.0592173, 0.6655428, 1.1890292],
-                ],
+                    [
+                        [-1.6505998, -1.0305759, 1.0229983],
+                        [-0.49261865, 1.0394262, -2.0290275],
+                        [0.21951008, -2.1673787, -0.38990623],
+                        [-0.2866124, 1.0799991, -0.11442444],
+                    ],
+                    [
+                        [-0.7052935, -0.5529446, 0.26524046],
+                        [-1.0540642, 0.6887131, 1.6723113],
+                        [1.1097006, 2.1335971, 0.9231482],
+                        [0.37910375, -0.12366215, -0.25093704],
+                    ],
+                    [
+                        [-1.9404864, -1.3078933, 0.88476175],
+                        [0.35099706, -1.254437, 0.05408821],
+                        [0.7342985, -0.43663985, 0.11520719],
+                        [-0.07479854, -2.5859993, 1.4102333],
+                    ],
+                    [
+                        [0.21304935, -0.3496548, -0.19856042],
+                        [-0.434919, -0.27774376, 1.1471609],
+                        [1.4504786, 0.67261624, -0.23560882],
+                        [1.0592173, 0.6655428, 1.1890292],
+                    ],
+                ]
             ],
             dtype=torch.float32,
         )
@@ -64,40 +66,42 @@ class TestZooAttack(unittest.TestCase):
         cls.modifier = np.array(
             [
                 [
-                    [-0.21563086, 0.54629284, 1.0879989],
-                    [-0.17234534, 0.37302095, 1.5072422],
-                    [-0.14709516, -0.08446954, -1.0199878],
-                    [-0.46581882, 0.41346493, -1.6357177],
-                ],
-                [
-                    [0.97039294, -0.46038368, -0.5377948],
-                    [-0.08285582, -1.4017423, -0.6447743],
-                    [-0.6031785, -2.003339, -0.01103557],
-                    [0.41714168, -1.94303, 0.6685426],
-                ],
-                [
-                    [-0.83851266, 0.79823476, 0.2532903],
-                    [-0.76351106, 0.90984505, 1.331635],
-                    [-1.1300149, -0.8444777, -2.2185612],
-                    [1.0166003, 0.9233805, 0.98315567],
-                ],
-                [
-                    [-0.88205546, -0.3438152, -0.36559045],
-                    [0.56274384, 1.5836877, -1.2370849],
-                    [1.4234338, -0.5929535, -1.3011148],
-                    [0.84160084, 0.90161383, 0.80880517],
-                ],
+                    [
+                        [-0.21563086, 0.54629284, 1.0879989],
+                        [-0.17234534, 0.37302095, 1.5072422],
+                        [-0.14709516, -0.08446954, -1.0199878],
+                        [-0.46581882, 0.41346493, -1.6357177],
+                    ],
+                    [
+                        [0.97039294, -0.46038368, -0.5377948],
+                        [-0.08285582, -1.4017423, -0.6447743],
+                        [-0.6031785, -2.003339, -0.01103557],
+                        [0.41714168, -1.94303, 0.6685426],
+                    ],
+                    [
+                        [-0.83851266, 0.79823476, 0.2532903],
+                        [-0.76351106, 0.90984505, 1.331635],
+                        [-1.1300149, -0.8444777, -2.2185612],
+                        [1.0166003, 0.9233805, 0.98315567],
+                    ],
+                    [
+                        [-0.88205546, -0.3438152, -0.36559045],
+                        [0.56274384, 1.5836877, -1.2370849],
+                        [1.4234338, -0.5929535, -1.3011148],
+                        [0.84160084, 0.90161383, 0.80880517],
+                    ],
+                ]
             ],
             dtype=np.float32,
         )
 
-        cls.labels = torch.tensor([0, 1])
+        cls.labels = torch.tensor([[0, 1]])
 
         cls.config = ZooAttackConfig(
             batch_size=4,
             init_size=4,
             max_iterations=100,
-            binary_search_steps=1,
+            binary_search_steps=3,
             reset_adam_after_found=True,
         )
         cls.model = nn.Sequential(
@@ -141,14 +145,12 @@ class TestZooAttack(unittest.TestCase):
         cls.attack = ZooAttack(
             model=cls.model,
             config=cls.config,
-            input_image_shape=cls.orig_img.shape,
+            input_image_shape=cls.orig_img.shape[1:],
             device="cpu:0",
         )
 
     def test_get_perturbed_image(self):
-        perturbed_image = self.attack.get_perturbed_image(
-            self.orig_img, torch.from_numpy(self.modifier)
-        )
+        perturbed_image = self.attack.get_perturbed_image(self.orig_img, self.modifier)
         self.assertEqual(perturbed_image.shape, self.orig_img.shape)
 
         output = torch.tanh(self.orig_img + self.modifier) / 2
@@ -158,9 +160,7 @@ class TestZooAttack(unittest.TestCase):
         attack = deepcopy(self.attack)
         attack.config.use_tanh = False
 
-        perturbed_image_2 = attack.get_perturbed_image(
-            self.orig_img, torch.from_numpy(self.modifier)
-        )
+        perturbed_image_2 = attack.get_perturbed_image(self.orig_img, self.modifier)
         self.assertEqual(perturbed_image_2.shape, self.orig_img.shape)
 
         output_2 = self.orig_img + torch.from_numpy(self.modifier)
@@ -203,33 +203,25 @@ class TestZooAttack(unittest.TestCase):
 
     def test_l2_distance_loss(self):
         new_img = self.attack.get_perturbed_image(self.orig_img, self.modifier)
-        temp_orig_img = self.orig_img.unsqueeze(0)
-        temp_new_img = new_img.unsqueeze(0)
-        loss = self.attack.l2_distance_loss(temp_orig_img, temp_new_img)
-        self.assertEqual(loss.shape[0], temp_orig_img.shape[0])
+        loss = self.attack.l2_distance_loss(self.orig_img, new_img)
+        self.assertEqual(loss.shape[0], self.orig_img.shape[0])
 
         # Without Tanh
         attack = deepcopy(self.attack)
         attack.config.use_tanh = False
 
-        new_img_2 = attack.get_perturbed_image(
-            self.orig_img, torch.from_numpy(self.modifier)
-        )
-        temp_orig_img = self.orig_img.unsqueeze(0)
-        temp_new_img = new_img_2.unsqueeze(0)
-        loss_2 = attack.l2_distance_loss(temp_orig_img, temp_new_img)
-        self.assertEqual(loss_2.shape[0], temp_orig_img.shape[0])
+        new_img_2 = attack.get_perturbed_image(self.orig_img, self.modifier)
+        loss_2 = attack.l2_distance_loss(self.orig_img, new_img_2)
+        self.assertEqual(loss_2.shape[0], self.orig_img.shape[0])
 
         # Integration Test
         self.assertTrue(np.allclose(np.array([3.7336116]), loss, atol=1e-5))
 
     def test_confidence_loss(self):
         new_img = self.attack.get_perturbed_image(self.orig_img, self.modifier)
-        temp_new_img = new_img.unsqueeze(0)
-        labels = self.labels.unsqueeze(0)
-        loss, model_output = self.attack.confidence_loss(temp_new_img, labels)
+        loss, model_output = self.attack.confidence_loss(new_img, self.labels)
 
-        self.assertEqual(loss.shape[0], temp_new_img.shape[0])
+        self.assertEqual(loss.shape[0], new_img.shape[0])
 
         # With Log and Untargeted
         attack = deepcopy(self.attack)
@@ -237,11 +229,9 @@ class TestZooAttack(unittest.TestCase):
         attack.config.targeted = False
 
         new_img_2 = attack.get_perturbed_image(self.orig_img, self.modifier)
-        temp_new_img = new_img_2.unsqueeze(0)
-        labels = self.labels.unsqueeze(0)
-        loss_2, model_output = attack.confidence_loss(temp_new_img, labels)
+        loss_2, model_output = attack.confidence_loss(new_img_2, self.labels)
 
-        self.assertEqual(loss_2.shape[0], temp_new_img.shape[0])
+        self.assertEqual(loss_2.shape[0], new_img_2.shape[0])
 
         # Integration Test
         self.assertTrue(np.allclose(np.array([0.2148518]), loss, atol=1e-5))
@@ -252,25 +242,23 @@ class TestZooAttack(unittest.TestCase):
         self.assertEqual(grads.shape, (self.config.batch_size,))
 
     def test_total_loss(self):
-        temp_orig_img = self.orig_img.unsqueeze(0)
         new_img = self.attack.get_perturbed_image(self.orig_img, self.modifier)
-        temp_new_img = new_img.unsqueeze(0)
-        labels = self.labels.unsqueeze(0)
 
         loss, l2_loss, confidence_loss, model_output = self.attack.total_loss(
-            temp_orig_img, temp_new_img, labels, self.config.initial_const
+            self.orig_img, new_img, self.labels, self.config.initial_const
         )
-        self.assertEqual(loss.shape[0], temp_orig_img.shape[0])
+        self.assertEqual(loss.shape[0], self.orig_img.shape[0])
 
-        self.assertEqual(confidence_loss.shape[0], temp_orig_img.shape[0])
+        self.assertEqual(confidence_loss.shape[0], self.orig_img.shape[0])
 
-        self.assertEqual(l2_loss.shape[0], temp_orig_img.shape[0])
+        self.assertEqual(l2_loss.shape[0], self.orig_img.shape[0])
 
-        self.assertEqual(model_output.shape, labels.shape)
+        self.assertEqual(model_output.shape, self.labels.shape)
 
     def test_max_pooling(self):
-        pooled_output = self.attack.max_pooling(self.modifier, 2)
-        self.assertEqual(pooled_output.shape, self.modifier.shape)
+        modifier = self.modifier[0][:, :, 0]
+        pooled_output = self.attack.max_pooling(modifier, 2)
+        self.assertEqual(pooled_output.shape, modifier.shape)
 
         # Integration Test
         self.assertTrue(
@@ -279,28 +267,28 @@ class TestZooAttack(unittest.TestCase):
                 np.array(
                     [
                         [
-                            [1.5072422, 1.5072422, 1.5072422],
-                            [1.5072422, 1.5072422, 1.5072422],
-                            [0.6685426, 0.6685426, 0.6685426],
-                            [0.6685426, 0.6685426, 0.6685426],
+                            0.97039294,
+                            0.97039294,
+                            0.41714168,
+                            0.41714168,
                         ],
                         [
-                            [1.5072422, 1.5072422, 1.5072422],
-                            [1.5072422, 1.5072422, 1.5072422],
-                            [0.6685426, 0.6685426, 0.6685426],
-                            [0.6685426, 0.6685426, 0.6685426],
+                            0.97039294,
+                            0.97039294,
+                            0.41714168,
+                            0.41714168,
                         ],
                         [
-                            [1.5836877, 1.5836877, 1.5836877],
-                            [1.5836877, 1.5836877, 1.5836877],
-                            [1.4234338, 1.4234338, 1.4234338],
-                            [1.4234338, 1.4234338, 1.4234338],
+                            0.56274384,
+                            0.56274384,
+                            1.4234338,
+                            1.4234338,
                         ],
                         [
-                            [1.5836877, 1.5836877, 1.5836877],
-                            [1.5836877, 1.5836877, 1.5836877],
-                            [1.4234338, 1.4234338, 1.4234338],
-                            [1.4234338, 1.4234338, 1.4234338],
+                            0.56274384,
+                            0.56274384,
+                            1.4234338,
+                            1.4234338,
                         ],
                     ]
                 ),
@@ -323,7 +311,7 @@ class TestZooAttack(unittest.TestCase):
 
         modifier = deepcopy(self.modifier)
 
-        attack.coordinate_adam(indices, grad, modifier, proj)
+        modifier = attack.coordinate_adam(indices, grad, modifier, proj)
 
         self.assertTrue(
             np.allclose(
@@ -547,7 +535,7 @@ class TestZooAttack(unittest.TestCase):
 
         modifier = deepcopy(self.modifier)
 
-        attack.coordinate_adam(indices, grad, modifier, proj)
+        modifier = attack.coordinate_adam(indices, grad, modifier, proj)
 
         self.assertTrue(
             np.allclose(
@@ -762,7 +750,7 @@ class TestZooAttack(unittest.TestCase):
 
     def test_get_new_prob(self):
         probs = self.attack.get_new_prob(self.modifier, 2)
-        self.assertEqual(probs.shape, self.modifier.shape)
+        self.assertEqual(probs.shape, self.modifier.shape[1:])
 
         # Integration Test
         self.assertTrue(
@@ -804,8 +792,7 @@ class TestZooAttack(unittest.TestCase):
         # Reset Only True
 
         attack = deepcopy(self.attack)
-        modifier = self.modifier.reshape((-1,) + self.modifier.shape)
-        new_modifier = attack.resize_img(8, 8, 3, modifier, 2, reset_only=True)
+        new_modifier = attack.resize_img(8, 8, 3, self.modifier, 2, reset_only=True)
 
         self.assertEqual(new_modifier.shape, (1, 8, 8, 3))
 
@@ -813,8 +800,7 @@ class TestZooAttack(unittest.TestCase):
 
         # Reset Only False
         attack = deepcopy(self.attack)
-        modifier = self.modifier.reshape((-1,) + self.modifier.shape)
-        new_modifier = attack.resize_img(8, 8, 3, modifier, 2)
+        new_modifier = attack.resize_img(8, 8, 3, self.modifier, 2)
 
         self.assertEqual(new_modifier.shape, (1, 8, 8, 3))
 
@@ -1123,60 +1109,50 @@ class TestZooAttack(unittest.TestCase):
         attack = deepcopy(self.attack)
         attack.config.use_importance = False
         attack.config.init_size = 2
-        modifier = deepcopy(self.modifier).reshape((-1,) + self.modifier.shape)
+        modifier = deepcopy(self.modifier)
 
-        target = self.labels.reshape((-1,) + self.labels.shape)
         (
             total_loss,
             l2_loss,
             confidence_loss,
             model_output,
             new_img,
+            modifier,
         ) = attack.single_step(
             modifier,
             self.orig_img,
-            target,
+            self.labels,
             self.config.initial_const,
             max_pooling_ratio=2,
         )
 
-        self.assertFalse(
-            np.allclose(
-                modifier, self.modifier.reshape((-1,) + self.modifier.shape), atol=1e-5
-            )
-        )
+        self.assertFalse(np.allclose(modifier, self.modifier, atol=1e-5))
 
-        self.assertEqual(new_img.shape, self.modifier.shape)
+        self.assertEqual(new_img.shape, self.modifier.shape[1:])
 
         # With Custom Indices
         attack = deepcopy(self.attack)
-        modifier = deepcopy(self.modifier).reshape((-1,) + self.modifier.shape)
-
+        modifier = deepcopy(self.modifier)
         indices = np.array([15, 24, 32, 45])
-
-        target = self.labels.reshape((-1,) + self.labels.shape)
         (
             total_loss,
             l2_loss,
             confidence_loss,
             model_output,
             new_img,
+            modifier,
         ) = attack.single_step(
             modifier,
             self.orig_img,
-            target,
+            self.labels,
             self.config.initial_const,
             var_indice=indices,
             max_pooling_ratio=2,
         )
 
-        self.assertFalse(
-            np.allclose(
-                modifier, self.modifier.reshape((-1,) + self.modifier.shape), atol=1e-5
-            )
-        )
+        self.assertFalse(np.allclose(modifier, self.modifier, atol=1e-5))
 
-        self.assertEqual(new_img.shape, self.modifier.shape)
+        self.assertEqual(new_img.shape, self.modifier.shape[1:])
 
         # NOTE: These tests are based on the outputs of the current implementation.
         self.assertTrue(
@@ -1394,47 +1370,56 @@ class TestZooAttack(unittest.TestCase):
 
     def test_attack(self):
         attack = deepcopy(self.attack)
-        orig_img = deepcopy(self.orig_img.numpy())
-        orig_img /= (10 * np.max(orig_img))
+        orig_img = deepcopy(self.orig_img[0].numpy())
+        orig_img /= 10 * np.max(orig_img)
+        labels = self.labels[0].numpy()
         outer_best_adv, outer_best_const = attack.attack(
-            orig_img, self.labels.numpy(), max_pooling_ratio=2
+            orig_img, labels, max_pooling_ratio=2
         )
 
-        self.assertEqual(outer_best_adv.shape, self.modifier.shape)
+        self.assertEqual(outer_best_adv.shape, self.modifier.shape[1:])
 
         # Without x10
         attack = deepcopy(self.attack)
-        orig_img = deepcopy(self.orig_img.numpy())
-        orig_img /= (100*np.max(orig_img))
+        orig_img = deepcopy(self.orig_img[0].numpy())
+        orig_img /= 100 * np.max(orig_img)
         outer_best_adv, outer_best_const = attack.attack(
-            orig_img, self.labels.numpy(), max_pooling_ratio=2
+            orig_img, labels, max_pooling_ratio=2
         )
 
-        self.assertEqual(outer_best_adv.shape, self.modifier.shape)
+        self.assertEqual(outer_best_adv.shape, self.modifier.shape[1:])
 
         # With modifier init
         attack = deepcopy(self.attack)
         outer_best_adv, outer_best_const = attack.attack(
             orig_img,
-            self.labels.numpy(),
-            modifier_init=self.modifier,
+            labels,
+            modifier_init=self.modifier[0],
             max_pooling_ratio=2,
         )
 
-        self.assertEqual(outer_best_adv.shape, self.modifier.shape)
+        self.assertEqual(outer_best_adv.shape, self.modifier.shape[1:])
 
-
-        # With use resize and without tanh and untargeted and max iterations 10k
+        # With use resize and untargeted and max iterations 10k
         attack = deepcopy(self.attack)
         attack.config.use_resize = True
         attack.config.max_iterations = 10001
-        attack.config.use_tanh = False
+
         attack.config.targeted = False
 
-        orig_img = deepcopy(self.orig_img.numpy())
-        orig_img /= (10 * np.max(orig_img))
+        orig_img = deepcopy(self.orig_img[0].numpy())
+        orig_img /= 10 * np.max(orig_img)
         outer_best_adv, outer_best_const = attack.attack(
-            orig_img, self.labels.numpy(), max_pooling_ratio=2
+            orig_img, labels, max_pooling_ratio=2
         )
-        self.assertEqual(outer_best_adv.shape, self.modifier.shape)
-        self.assertTrue(False)
+        self.assertEqual(outer_best_adv.shape, self.modifier.shape[1:])
+
+        # Without tanh
+        attack = deepcopy(self.attack)
+        attack.config.use_tanh = False
+        outer_best_adv, outer_best_const = attack.attack(
+            orig_img, labels, max_pooling_ratio=2
+        )
+        self.assertEqual(outer_best_adv.shape, self.modifier.shape[1:])
+
+        attack.config.use_tanh = False

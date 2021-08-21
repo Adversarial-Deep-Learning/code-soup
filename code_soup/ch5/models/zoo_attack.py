@@ -67,6 +67,14 @@ class ZooAttack:
         assert len(input_image_shape) == 3, "`input_image_shape` must be of length 3"
 
         self.config = config
+
+        if self.config.use_tanh is False and self.config.use_resize is True:
+            # NOTE: self.up and self.down need to be updated dynamically to match the modifier shape.
+            # Original Implementation is possibly flawed in this aspect.
+            raise NotImplementedError(
+                "Current implementation does not support `use_tanh` as `False` and `use_resize` as `True` at the same time."
+            )
+
         self.device = device
         self.input_image_shape = input_image_shape
 
@@ -86,11 +94,32 @@ class ZooAttack:
         # Sampling Probabilities
         self.sample_prob = np.ones(var_size, dtype=np.float32) / var_size
 
-    def get_perturbed_image(self, orig_img: torch.tensor, modifier: torch.tensor):
-        if self.config.use_tanh:
-            return torch.tanh(orig_img + modifier) / 2
+    def get_perturbed_image(self, orig_img: torch.tensor, modifier: np.ndarray):
+
+        assert orig_img.ndim == 4, "`orig_img` must be a 4D tensor"
+        assert modifier.ndim == 4, "`modifier` must be a 4D tensor"
+
+        b = modifier.shape[0]
+        x = orig_img.shape[1]
+        y = orig_img.shape[2]
+        z = orig_img.shape[3]
+
+        new_modifier = np.zeros((b, x, y, z), dtype=np.float32)
+
+        if x != modifier.shape[1] or y != modifier.shape[2]:
+            for k, v in enumerate(modifier):
+                new_modifier[k, :, :, :] = cv2.resize(
+                    modifier[k, :, :, :],
+                    (x, y),
+                    interpolation=cv2.INTER_LINEAR,
+                )
         else:
-            return orig_img + modifier
+            new_modifier = modifier
+
+        if self.config.use_tanh:
+            return torch.tanh(orig_img + new_modifier) / 2
+        else:
+            return orig_img + new_modifier
 
     def l2_distance_loss(self, orig_img: torch.tensor, new_img: torch.tensor):
 
@@ -174,6 +203,8 @@ class ZooAttack:
 
     # Adapted from original code
     def max_pooling(self, modifier: np.ndarray, patch_size: int):
+
+        assert modifier.ndim == 2, "`modifier` must be a 2D array"
         img_pool = np.copy(modifier)
         img_x = modifier.shape[0]
         img_y = modifier.shape[1]
@@ -225,6 +256,8 @@ class ZooAttack:
         m[indices] = old_val
         self.adam_epochs[indices] = epochs + 1
 
+        return m.reshape(modifier.shape)
+
     # Adapted from original code
     def get_new_prob(
         self, modifier: np.ndarray, max_pooling_ratio: int = 8, gen_double: bool = False
@@ -247,7 +280,14 @@ class ZooAttack:
                 )
             else:
                 prob[:, :, i] = image_pool
-        prob /= np.sum(prob)
+
+        # NOTE: This is here to handle all zeros input
+        if np.sum(prob) != 0:
+            prob /= np.sum(prob)
+        else:
+            prob = np.ones(shape=new_shape, dtype=np.float32)
+            prob /= np.sum(prob)
+
         return prob
 
     # Adapted from original code
@@ -334,15 +374,17 @@ class ZooAttack:
         )
 
         if modifier.shape[1] > self.config.init_size:
-            print(modifier.shape)
-            print(max_pooling_ratio)
-            self.sample_prob = self.get_new_prob(modifier, max_pooling_ratio=max_pooling_ratio)
+            self.sample_prob = self.get_new_prob(
+                modifier, max_pooling_ratio=max_pooling_ratio
+            )
             self.sample_prob = self.sample_prob.reshape(var_size)
 
         grad = self.zero_order_gradients(losses)
 
         # Modifier is updated here, so is adam epochs, mt_arr, and vt_arr
-        self.coordinate_adam(indices, grad, modifier, not self.config.use_tanh)
+        modifier = self.coordinate_adam(
+            indices, grad, modifier, not self.config.use_tanh
+        )
 
         return (
             losses[0],
@@ -350,6 +392,7 @@ class ZooAttack:
             confidence_losses[0],
             model_output[0].detach().numpy(),
             new_img[0],
+            modifier,
         )
 
     def attack(
@@ -357,7 +400,7 @@ class ZooAttack:
         orig_img: np.ndarray,
         target: np.ndarray,
         modifier_init: np.ndarray = None,
-        max_pooling_ratio:int = 8,
+        max_pooling_ratio: int = 8,
     ):
         def compare(x, y):
             if not isinstance(x, (float, int, np.int64)):
@@ -450,6 +493,7 @@ class ZooAttack:
                         max_pooling_ratio,
                         reset_only=True,
                     )
+
                 else:
                     modifier = np.zeros(orig_img.shape, dtype=np.float32)
 
@@ -463,10 +507,21 @@ class ZooAttack:
             for iter in range(0, self.config.max_iterations):
                 if self.config.use_resize:
                     if iter == 2000:
-                        modifier = self.resize_img(self.config.init_size*2, self.config.init_size*2, 3, modifier, max_pooling_ratio)
+                        modifier = self.resize_img(
+                            self.config.init_size * 2,
+                            self.config.init_size * 2,
+                            3,
+                            modifier,
+                            max_pooling_ratio,
+                        )
                     if iter == 10000:
-                        modifier = self.resize_img(self.config.init_size*4, self.config.init_size*4, 3, modifier, max_pooling_ratio)
-
+                        modifier = self.resize_img(
+                            self.config.init_size * 4,
+                            self.config.init_size * 4,
+                            3,
+                            modifier,
+                            max_pooling_ratio,
+                        )
                 if iter % (self.config.max_iterations // 10) == 0:
                     new_img = self.get_perturbed_image(orig_img, modifier)
                     (
@@ -487,7 +542,10 @@ class ZooAttack:
                     confidence_loss,
                     model_output,
                     adv_img,
-                ) = self.single_step(modifier, orig_img, target, mid, max_pooling_ratio=max_pooling_ratio)
+                    modifier,
+                ) = self.single_step(
+                    modifier, orig_img, target, mid, max_pooling_ratio=max_pooling_ratio
+                )
 
                 eval_costs += self.config.batch_size
 
