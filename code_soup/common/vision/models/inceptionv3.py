@@ -43,7 +43,13 @@ def inception_v3(pretrained=False, **kwargs):
 
 # parent class
 class Inception3(nn.Module):
-    def __init__(self, num_classes=10, aux_logits=True, transform_input=True):
+    def __init__(
+        self,
+        num_classes=10,
+        aux_logits=True,
+        transform_input=True,
+        device=torch.device("cpu"),
+    ):
         super(Inception3, self).__init__()
         self.aux_logits = aux_logits
         self.transform_input = transform_input
