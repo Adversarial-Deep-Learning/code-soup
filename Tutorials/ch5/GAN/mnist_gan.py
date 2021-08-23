@@ -51,7 +51,7 @@ if __name__ == "__main__":
     transform = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
     )
-    dataset = MnistDataset(transform=transform)
+    dataset = MNISTDataset(transform=transform)
     dataloader = torch.utils.data.DataLoader(
         dataset, batch_size=dataloader_batch_size, shuffle=True
     )
