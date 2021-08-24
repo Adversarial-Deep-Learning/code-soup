@@ -6,7 +6,7 @@ class Perturbation(ABC):
     Docstring for Abstract Class Perturbation
     """
 
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def __init__(self):
         pass

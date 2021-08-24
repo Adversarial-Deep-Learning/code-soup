@@ -6,7 +6,7 @@ import torch
 from torchvision.datasets.fakedata import FakeData
 from torchvision.transforms import ToTensor
 
-from code_soup.common import VisualPerturbation
+from code_soup.common.vision.perturbations import VisualPerturbation
 
 
 class TestVisualPerturbation(unittest.TestCase):

@@ -4,7 +4,7 @@ from typing import Union
 import numpy as np
 import torch
 
-from code_soup.common.perturbations import Perturbation
+from code_soup.common.perturbation import Perturbation
 
 
 class VisualPerturbation(Perturbation):
