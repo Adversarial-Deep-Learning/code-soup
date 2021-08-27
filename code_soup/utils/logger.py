@@ -1,4 +1,5 @@
 import logging
+import sys
 
 
 class Logger(object):
@@ -15,7 +16,7 @@ class Logger(object):
         self.logger.addHandler(file_handler)
 
     def add_stream_handler(self):
-        stream_handler = logging.StreamHandler()
+        stream_handler = logging.StreamHandler(sys.stdout)
         stream_handler.setLevel(self.log_level)
         self.logger.addHandler(stream_handler)
 
