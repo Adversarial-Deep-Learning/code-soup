@@ -311,5 +311,5 @@ class VisuallySimilarCharacterPerturbations(CharacterPerturbations):
                     glyph_pick = np.random.choice(len(glyph_string), 1)[0]
                     char_list_glyph.append(glyph_string[glyph_pick])
                 else:
-                    char_list_glyph.append(char)
+                    char_list_glyph.append(char)  # pragma: no cover
             return "".join(char_list_glyph)
