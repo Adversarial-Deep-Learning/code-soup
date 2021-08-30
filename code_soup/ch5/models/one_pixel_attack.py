@@ -16,7 +16,7 @@ class OnePixelAttack:
 
     """
 
-    def __init__(self, model, device=None):
+    def __init__(self, model, device=None): 
 
         """
 
@@ -34,11 +34,11 @@ class OnePixelAttack:
         self.device = device
         if self.device is None:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        if self.labels is None:
-            self.labels = range(10)
 
-    def perturb_image(self, perturbation, orig_img):
+    def perturb_image(self, perturbation, orig_img): # pragma: no cover
         """
+        Parameters
+        ----------
         orig_image: image to be changed
         perturbation: tuple of (x,y,r,g,b) on basis of which the image is changed
                       [(),(),()]. Image can have multiple perturbations
@@ -49,10 +49,11 @@ class OnePixelAttack:
 
         return new_img
 
-    def perturbation_image(self, perturbation_array, image):
+    def perturbation_image(self, perturbation_array, image): # pragma: no cover
         """
         Applies multiple perturbation to a single image
-
+        Parameters
+        ----------
         image: the image to be perturbated
         perturbation_array: array like [x1, y1, r1, g1, b1, x2, y2, r2, g2, b2, ...]
                             the number of pixels to be changed
@@ -70,11 +71,15 @@ class OnePixelAttack:
 
         return new_image
 
-    def predict_class(self, xs, img, target_class, minimize=True):
+    def predict_class(self, xs, img, target_class, minimize=True): # pragma: no cover
         """
+        Parameters
+        ----------
         xs: 1d array to be evolved
         img: image to be perturbed
-        traget_class: class to be targeted or avoided
+        target_class: class to be targeted or avoided
+        minimize: This function should always be minimized, so return its complement
+                if needed basically is targetted increase the prob
         """
         # Perturb the image with the given pixel(s) x and get the prediction of the model
         img_perturbed = self.perturbation_image(xs, img)
@@ -84,7 +89,7 @@ class OnePixelAttack:
         # if needed basically is targetted increase the prob
         return prediction if minimize else 1 - prediction
 
-    def model_predict(self, image):
+    def model_predict(self, image): # pragma: no cover
         """
         Helper function to predict probs from the model of just 1 image
         """
@@ -97,7 +102,7 @@ class OnePixelAttack:
 
     def attack_success(
         self, x, img, target_class, targeted_attack=False, verbose=False
-    ):
+    ): # pragma: no cover
         """
         check if the attack is a success. the callback helper function for differential_evolution
         Parameters
@@ -135,7 +140,7 @@ class OnePixelAttack:
         maxiter=75,
         popsize=400,
         verbose=False,
-    ):
+    ): # pragma: no cover
 
         """
         Runs the attack on a single image, searches the image space
@@ -264,7 +269,6 @@ class OnePixelAttack:
         for i in range(batch_size):
             image = images[i].detach().numpy()
             orig_label = image_orig_label[i].detach().numpy()
-            self.samples_counter = self.samples_counter + 1
             targets = [None] if not targeted else range(len(labels))
 
             for target in targets:

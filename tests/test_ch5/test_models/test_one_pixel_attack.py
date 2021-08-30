@@ -6,7 +6,7 @@ import torch.nn as nn
 from code_soup.ch5.models.one_pixel_attack import OnePixelAttack
 
 
-class TestGAN(unittest.TestCase):
+class TestOnePixelAttack(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         model_to_attack = nn.Sequential(nn.Linear(2 * 2 * 3, 10)).cpu()
