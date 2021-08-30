@@ -168,11 +168,9 @@ class ZooAttack:
         if self.config["use_log"]:
             model_output = F.softmax(model_output, dim=1)
 
-        print("Model Output:", model_output)
         real = torch.sum(target * model_output, dim=1)
         other = torch.max((1 - target) * model_output - (target * 10000), dim=1)[0]
 
-        print("Use Log: ", self.config["use_log"])
         if self.config["use_log"]:
             real = torch.log(real + 1e-30)
             other = torch.log(other + 1e-30)
@@ -181,11 +179,6 @@ class ZooAttack:
             torch.float64
         )
 
-        print("Targeted: ", self.config["targeted"])
-        print("Target: ", target)
-        print("confidence: ", confidence)
-        print("Real: ", real)
-        print("Other: ", other)
         if self.config["targeted"]:
             # If targetted, optimize for making the other class most likely
             output = (
@@ -224,9 +217,9 @@ class ZooAttack:
             np.ndarray: A numpy array containing the total loss for the original image and the perturbed images.
         """
         l2_loss = self.l2_distance_loss(orig_img, new_img)
-        print("L2 Loss: ", l2_loss)
+
         confidence_loss, model_output = self.confidence_loss(new_img, target)
-        print("Confidence Loss: ", confidence_loss)
+
         return (
             l2_loss + const * confidence_loss,
             l2_loss,
@@ -268,7 +261,7 @@ class ZooAttack:
         Returns:
             np.ndarray: A numpy array containing the zero order gradients for the losses.
         """
-        print("Losses:", losses)
+
         grad = np.zeros(self.config["batch_size"])
         for i in range(self.config["batch_size"]):
             grad[i] = (losses[i * 2 + 1] - losses[i * 2 + 2]) / 0.0002
@@ -466,7 +459,6 @@ class ZooAttack:
                     self.var_list.size, self.config["batch_size"], replace=False
                 )
         indices = self.var_list[var_indice]
-        print("Indices: ", indices)
 
         for i in range(self.config["batch_size"]):
             var[i * 2 + 1].reshape(-1)[indices[i]] += 0.0001
@@ -484,8 +476,6 @@ class ZooAttack:
             self.sample_prob = self.sample_prob.reshape(var_size)
 
         grad = self.zero_order_gradients(losses)
-
-        print("Grad: ", grad)
 
         # Modifier is updated here, so is adam epochs, mt_arr, and vt_arr
         self.coordinate_adam(indices, grad, modifier, not self.config["use_tanh"])

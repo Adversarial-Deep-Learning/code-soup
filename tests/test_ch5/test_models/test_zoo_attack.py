@@ -1156,7 +1156,6 @@ class TestZooAttack(unittest.TestCase):
         self.assertEqual(new_img.shape, self.modifier.shape[1:])
 
         # NOTE: These tests are based on the outputs of the current implementation.
-        print("Attack MT Arr: ", attack.mt_arr)
         self.assertTrue(
             np.allclose(
                 attack.mt_arr,
