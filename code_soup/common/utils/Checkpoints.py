@@ -9,5 +9,4 @@ class Checkpoints:
     @classmethod
     def load(self, PATH, model):
         model.load_state_dict(torch.load(PATH))
-        model.eval()
         return model
