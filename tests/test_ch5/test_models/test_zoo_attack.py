@@ -1215,7 +1215,6 @@ class TestZooAttack(unittest.TestCase):
                 atol=1e-5,
             )
         )
-        self.assertTrue(False)
         self.assertTrue(
             np.allclose(
                 attack.vt_arr,
