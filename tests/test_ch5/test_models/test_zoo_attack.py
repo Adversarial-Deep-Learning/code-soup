@@ -6,25 +6,7 @@ import torch
 import torch.nn as nn
 import torchvision
 
-from code_soup.ch5.models.zoo_attack import ZooAttack, ZooAttackConfig
-
-
-class TestZooAttackConfig(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.config = ZooAttackConfig(learning_rate=1e-2, batch_size=4, init_size=4)
-
-    def test_learning_rate(self):
-        self.assertEqual(self.config.learning_rate, 1e-2)
-
-    def test_update(self):
-        self.config.learning_rate = 1e-3
-        self.assertEqual(self.config.learning_rate, 1e-3)
-
-    def test_equality(self):
-        self.assertEqual(self.config.learning_rate, 1e-2)
-        self.assertEqual(self.config.batch_size, 4)
-        self.assertEqual(self.config.init_size, 4)
+from code_soup.ch5.models.zoo_attack import ZooAttack
 
 
 class TestZooAttack(unittest.TestCase):
@@ -97,13 +79,29 @@ class TestZooAttack(unittest.TestCase):
 
         cls.labels = torch.tensor([[0, 1]])
 
-        cls.config = ZooAttackConfig(
-            batch_size=4,
-            init_size=4,
-            max_iterations=100,
-            binary_search_steps=1,
-            reset_adam_after_found=True,
-        )
+        cls.config = {
+            "binary_search_steps": 1,
+            "max_iterations": 100,
+            "learning_rate": 2e-3,
+            "abort_early": True,
+            "targeted": True,
+            "confidence": 0,
+            "initial_const": 0.5,
+            "use_log": False,
+            "use_tanh": True,
+            "reset_adam_after_found": True,
+            "batch_size": 4,
+            "const": 0.5,
+            "early_stop_iters": 0,
+            "adam_beta1": 0.9,
+            "adam_beta2": 0.999,
+            "use_importance": True,
+            "use_resize": False,
+            "init_size": 4,
+            "adam_eps": 1e-8,
+            "resize_iter_1": 2000,
+            "resize_iter_2": 10000,
+        }
         cls.model = nn.Sequential(
             nn.Conv2d(
                 in_channels=3, out_channels=1, kernel_size=2, padding=0, bias=False
@@ -158,7 +156,7 @@ class TestZooAttack(unittest.TestCase):
 
         # Without Tanh
         attack = deepcopy(self.attack)
-        attack.config.use_tanh = False
+        attack.config["use_tanh"] = False
 
         perturbed_image_2 = attack.get_perturbed_image(self.orig_img, self.modifier)
         self.assertEqual(perturbed_image_2.shape, self.orig_img.shape)
@@ -208,7 +206,7 @@ class TestZooAttack(unittest.TestCase):
 
         # Without Tanh
         attack = deepcopy(self.attack)
-        attack.config.use_tanh = False
+        attack.config["use_tanh"] = False
 
         new_img_2 = attack.get_perturbed_image(self.orig_img, self.modifier)
         loss_2 = attack.l2_distance_loss(self.orig_img, new_img_2)
@@ -225,8 +223,8 @@ class TestZooAttack(unittest.TestCase):
 
         # With Log and Untargeted
         attack = deepcopy(self.attack)
-        attack.config.use_log = True
-        attack.config.targeted = False
+        attack.config["use_log"] = True
+        attack.config["targeted"] = False
 
         new_img_2 = attack.get_perturbed_image(self.orig_img, self.modifier)
         loss_2, model_output = attack.confidence_loss(new_img_2, self.labels)
@@ -237,15 +235,15 @@ class TestZooAttack(unittest.TestCase):
         self.assertTrue(np.allclose(np.array([0.2148518]), loss, atol=1e-5))
 
     def test_zero_order_gradients(self):
-        losses = np.random.randn(2 * self.config.batch_size + 1)
+        losses = np.random.randn(2 * self.config["batch_size"] + 1)
         grads = self.attack.zero_order_gradients(losses)
-        self.assertEqual(grads.shape, (self.config.batch_size,))
+        self.assertEqual(grads.shape, (self.config["batch_size"],))
 
     def test_total_loss(self):
         new_img = self.attack.get_perturbed_image(self.orig_img, self.modifier)
 
         loss, l2_loss, confidence_loss, model_output = self.attack.total_loss(
-            self.orig_img, new_img, self.labels, self.config.initial_const
+            self.orig_img, new_img, self.labels, self.config["initial_const"]
         )
         self.assertEqual(loss.shape[0], self.orig_img.shape[0])
 
@@ -300,14 +298,14 @@ class TestZooAttack(unittest.TestCase):
 
         # With Proj True
         attack = deepcopy(self.attack)
-        attack.config.use_tanh = False
+        attack.config["use_tanh"] = False
         attack.up = 0.5 - self.orig_img.numpy().reshape(-1)
         attack.down = -0.5 - self.orig_img.numpy().reshape(-1)
         indices = np.array([15, 24, 32, 45])
 
         grad = np.array([2000.0, 3500.0, -1000.0, -1500.0])
 
-        proj = not attack.config.use_tanh
+        proj = not attack.config["use_tanh"]
 
         modifier = deepcopy(self.modifier)
 
@@ -531,7 +529,7 @@ class TestZooAttack(unittest.TestCase):
 
         grad = np.array([2000.0, 3500.0, -1000.0, -1500.0])
 
-        proj = not attack.config.use_tanh
+        proj = not attack.config["use_tanh"]
 
         modifier = deepcopy(self.modifier)
 
@@ -1107,8 +1105,8 @@ class TestZooAttack(unittest.TestCase):
 
         # Random Without Importance and init size reduce
         attack = deepcopy(self.attack)
-        attack.config.use_importance = False
-        attack.config.init_size = 2
+        attack.config["use_importance"] = False
+        attack.config["init_size"] = 2
         modifier = deepcopy(self.modifier)
 
         (
@@ -1121,7 +1119,7 @@ class TestZooAttack(unittest.TestCase):
             modifier,
             self.orig_img,
             self.labels,
-            self.config.initial_const,
+            self.config["initial_const"],
             max_pooling_ratio=2,
         )
 
@@ -1143,7 +1141,7 @@ class TestZooAttack(unittest.TestCase):
             modifier,
             self.orig_img,
             self.labels,
-            self.config.initial_const,
+            self.config["initial_const"],
             var_indice=indices,
             max_pooling_ratio=2,
         )
@@ -1400,11 +1398,11 @@ class TestZooAttack(unittest.TestCase):
 
         # With use resize and untargeted and max iterations 10k
         attack = deepcopy(self.attack)
-        attack.config.use_resize = True
-        attack.config.resize_iter_1 = 20
-        attack.config.resize_iter_2 = 80
-        attack.config.abort_early = False
-        attack.config.targeted = False
+        attack.config["use_resize"] = True
+        attack.config["resize_iter_1"] = 20
+        attack.config["resize_iter_2"] = 80
+        attack.config["abort_early"] = False
+        attack.config["targeted"] = False
 
         orig_img = deepcopy(self.orig_img[0].numpy())
         orig_img /= 10 * np.max(orig_img)
@@ -1415,10 +1413,10 @@ class TestZooAttack(unittest.TestCase):
 
         # Without tanh
         attack = deepcopy(self.attack)
-        attack.config.use_tanh = False
+        attack.config["use_tanh"] = False
         outer_best_adv, outer_best_const = attack.attack(
             orig_img, labels, max_pooling_ratio=2
         )
         self.assertEqual(outer_best_adv.shape, self.modifier.shape[1:])
 
-        attack.config.use_tanh = False
+        attack.config["use_tanh"] = False

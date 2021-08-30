@@ -1,5 +1,17 @@
-import random
-from typing import List
+"""
+Implements ZOO (Zero-Order Optimization) Attack. 
+
+This code is based on the L2-attack from the original implementation of the attack:
+https://github.com/huanzhang12/ZOO-Attack/blob/master/l2_attack_black.py
+
+Usage:
+    >>> import json
+    >>> from code_soup.ch5.models.zoo_attack import ZOOAttack
+    >>> config = json.load(open('./code-soup/ch5/models/configs/zoo_attack.json'))
+    >>> attack = ZOOAttack(model, config, input_image_shape=[28, 28, 3], device = 'cpu')
+    >>> adv_img, const = attack.attack(orig_img, target) # Targeted or untargeted is decided via config
+"""
+from typing import Dict, List
 
 import cv2
 import numpy as np
@@ -8,76 +20,43 @@ import torch.nn.functional as F
 from PIL import Image
 
 
-class ZooAttackConfig:
-    def __init__(
-        self,
-        binary_search_steps=1,
-        max_iterations=10000,
-        learning_rate=2e-3,
-        abort_early=True,
-        targeted=True,
-        confidence=0,
-        initial_const=0.5,
-        use_log=False,
-        use_tanh=True,
-        reset_adam_after_found=False,
-        batch_size=128,
-        const=0.5,
-        early_stop_iters=0,
-        adam_beta1=0.9,
-        adam_beta2=0.999,
-        use_importance=True,
-        use_resize=False,
-        init_size=32,
-        adam_eps=1e-8,
-        resize_iter_1=2000,
-        resize_iter_2=10000,
-    ):
-        self.binary_search_steps = binary_search_steps
-        self.max_iterations = max_iterations
-        self.learning_rate = learning_rate
-        self.abort_early = abort_early
-        self.targeted = targeted
-        self.confidence = confidence
-        self.initial_const = initial_const
-        self.use_log = use_log
-        self.use_tanh = use_tanh
-        self.reset_adam_after_found = reset_adam_after_found
-        self.batch_size = batch_size
-        self.const = const
-        self.confidence = confidence
-        self.early_stop_iters = (
-            early_stop_iters if early_stop_iters != 0 else max_iterations // 10
-        )
-        self.adam_beta1 = adam_beta1
-        self.adam_beta2 = adam_beta2
-        self.use_importance = use_importance
-        self.use_resize = use_resize
-        self.init_size = init_size
-        self.adam_eps = adam_eps
-        self.resize_iter_1 = resize_iter_1
-        self.resize_iter_2 = resize_iter_2
-
-
 class ZooAttack:
+    """
+    Implements the ZooAttack class.
+    """
+
     def __init__(
         self,
         model: torch.nn.Module,
-        config: ZooAttackConfig,
+        config: Dict,
         input_image_shape: List[int],
         device: str,
     ):
+        """Initializes the ZooAttack class.
+
+        Args:
+            model (torch.nn.Module): A PyTorch model.
+            config (Dict): A dictionary containing the configuration for the attack.
+            input_image_shape (List[int]): A tuple of ints containing the shape of the input image.
+            device (str): The device to perform the attack on.
+
+        Raises:
+            NotImplementedError: If `use_tanh` is `False` and `use_resize` is `True`.
+        """
 
         assert len(input_image_shape) == 3, "`input_image_shape` must be of length 3"
 
         self.config = config
 
-        if self.config.use_tanh is False and self.config.use_resize is True:
+        if self.config["use_tanh"] is False and self.config["use_resize"] is True:
             # NOTE: self.up and self.down need to be updated dynamically to match the modifier shape.
             # Original Implementation is possibly flawed in this aspect.
             raise NotImplementedError(
                 "Current implementation does not support `use_tanh` as `False` and `use_resize` as `True` at the same time."
             )
+
+        if self.config["early_stop_iters"] == 0:
+            self.config["early_stop_iters"] = self.config["max_iterations"] // 10
 
         self.device = device
         self.input_image_shape = input_image_shape
@@ -99,6 +78,16 @@ class ZooAttack:
         self.sample_prob = np.ones(var_size, dtype=np.float32) / var_size
 
     def get_perturbed_image(self, orig_img: torch.tensor, modifier: np.ndarray):
+        """Calculates the perturbed image given `orig_img` and `modifier`.
+
+        Args:
+            orig_img (torch.tensor): The original image with a batch dimension. Expected batch size is 1.
+                Using any other batch size may lead to unexpected behavior.
+            modifier (np.ndarray): A numpy array with modifier(s) for the image.
+
+        Returns:
+            torch.tensor: The perturbed image from original image and modifier.
+        """
 
         assert orig_img.ndim == 4, "`orig_img` must be a 4D tensor"
         assert modifier.ndim == 4, "`modifier` must be a 4D tensor"
@@ -120,19 +109,28 @@ class ZooAttack:
         else:
             new_modifier = modifier
 
-        if self.config.use_tanh:
+        if self.config["use_tanh"]:
             return torch.tanh(orig_img + new_modifier) / 2
         else:
             return orig_img + new_modifier
 
     def l2_distance_loss(self, orig_img: torch.tensor, new_img: torch.tensor):
+        """Calculates the L2 loss between the image and the new images.
+
+        Args:
+            orig_img (torch.tensor): The original image tensor.
+            new_img (torch.tensor): The tensor containing the perturbed images from the original image.
+
+        Returns:
+            np.ndarray: The numpy array containing the L2 loss between the original image and the perturbed images.
+        """
 
         # assert orig_img.shape == new_img.shape, "Images must be the same shape"
 
         assert new_img.ndim == 4, "`new_img` must be a 4D tensor"
         dim = (1, 2, 3)
 
-        if self.config.use_tanh:
+        if self.config["use_tanh"]:
             return (
                 torch.sum(torch.square(new_img - torch.tanh(orig_img) / 2), dim=dim)
                 .detach()
@@ -148,6 +146,15 @@ class ZooAttack:
             )
 
     def confidence_loss(self, new_img: torch.tensor, target: torch.tensor):
+        """Calculate the confidence loss between the perturbed images and target.
+
+        Args:
+            new_img (torch.tensor): A 4D tensor containing the perturbed images.
+            target (torch.tensor): A 2D tensor containing the target labels.
+
+        Returns:
+            np.ndarray: A numpy array containing the confidence loss between the perturbed images and target.
+        """
         assert new_img.ndim == 4, "`new_img` must be of shape (N, H, W, C)"
         assert (
             target.ndim == 2
@@ -156,21 +163,21 @@ class ZooAttack:
         new_img = new_img.permute(0, 3, 1, 2)
 
         model_output = self.model(new_img)
-        if self.config.use_log:
+        if self.config["use_log"]:
             model_output = F.softmax(model_output, dim=1)
 
         real = torch.sum(target * model_output, dim=1)
         other = torch.max((1 - target) * model_output - (target * 10000), dim=1)[0]
 
-        if self.config.use_log:
+        if self.config["use_log"]:
             real = torch.log(real + 1e-30)
             other = torch.log(other + 1e-30)
 
-        confidence = torch.tensor(self.config.confidence, device=self.device).type(
+        confidence = torch.tensor(self.config["confidence"], device=self.device).type(
             torch.float64
         )
 
-        if self.config.targeted:
+        if self.config["targeted"]:
             # If targetted, optimize for making the other class most likely
             output = (
                 torch.max(torch.zeros_like(real), other - real + confidence)
@@ -196,6 +203,17 @@ class ZooAttack:
         target: torch.tensor,
         const: int,
     ):
+        """Calculate the total loss for the original image and the perturbed images.
+
+        Args:
+            orig_img (torch.tensor): A 4D tensor containing the original image.
+            new_img (torch.tensor): A 4D tensor containing the perturbed images.
+            target (torch.tensor): A 2D tensor containing the target labels.
+            const (int): The constant to be used in calculating the loss, with which confidence loss is scaled.
+
+        Returns:
+            np.ndarray: A numpy array containing the total loss for the original image and the perturbed images.
+        """
         l2_loss = self.l2_distance_loss(orig_img, new_img)
         confidence_loss, model_output = self.confidence_loss(new_img, target)
         return (
@@ -207,6 +225,17 @@ class ZooAttack:
 
     # Adapted from original code
     def max_pooling(self, modifier: np.ndarray, patch_size: int):
+        """Max pooling operation on a single-channel modifier with a given patch size.
+
+        The array remains the same size after the operation, only the patches have max value throughout.
+
+        Args:
+            modifier (np.ndarray): A numpy array containing a channel of the perturbation.
+            patch_size (int): The size of the patches to be max pooled.
+
+        Returns:
+            np.ndarray: A 2D modifier array containing the max pooled patches.
+        """
 
         assert modifier.ndim == 2, "`modifier` must be a 2D array"
         img_pool = np.copy(modifier)
@@ -220,38 +249,56 @@ class ZooAttack:
         return img_pool
 
     def zero_order_gradients(self, losses: np.ndarray):
-        grad = np.zeros(self.config.batch_size)
-        for i in range(self.config.batch_size):
+        """Calculate the zero order gradients for the losses.
+
+        Args:
+            losses (np.ndarray): A numpy array containing the losses with length - 2 * batch_size + 1
+
+        Returns:
+            np.ndarray: A numpy array containing the zero order gradients for the losses.
+        """
+        grad = np.zeros(self.config["batch_size"])
+        for i in range(self.config["batch_size"]):
             grad[i] = (losses[i * 2 + 1] - losses[i * 2 + 2]) / 0.0002
         return grad
 
     def coordinate_adam(
         self, indices: np.ndarray, grad: np.ndarray, modifier: np.ndarray, proj: bool
     ):
+        """Perform inplace coordinate-wise Adam update on modifier.
+
+        Args:
+            indices (np.ndarray): A numpy array containing the indices of the coordinates to be updated.
+            grad (np.ndarray): A numpy array containing the gradients.
+            modifier (np.ndarray): A numpy array containing the current modifier/perturbation.
+            proj (bool): Whether to limit the new values of the modifier between up and down limits.
+        """
         # First moment
         mt = self.mt_arr[indices]
-        mt = self.config.adam_beta1 * mt + (1 - self.config.adam_beta1) * grad
+        mt = self.config["adam_beta1"] * mt + (1 - self.config["adam_beta1"]) * grad
 
         self.mt_arr[indices] = mt
 
         # Second moment
         vt = self.vt_arr[indices]
-        vt = self.config.adam_beta2 * vt + (1 - self.config.adam_beta2) * (grad * grad)
+        vt = self.config["adam_beta2"] * vt + (1 - self.config["adam_beta2"]) * (
+            grad * grad
+        )
 
         self.vt_arr[indices] = vt
 
         epochs = self.adam_epochs[indices]
 
         # Bias Correction
-        mt_hat = mt / (1 - np.power(self.config.adam_beta1, epochs))
-        vt_hat = vt / (1 - np.power(self.config.adam_beta2, epochs))
+        mt_hat = mt / (1 - np.power(self.config["adam_beta1"], epochs))
+        vt_hat = vt / (1 - np.power(self.config["adam_beta2"], epochs))
 
         m = modifier.reshape(-1)
         old_val = m[indices]
         old_val -= (
-            self.config.learning_rate
+            self.config["learning_rate"]
             * mt_hat
-            / (np.sqrt(vt_hat) + self.config.adam_eps)
+            / (np.sqrt(vt_hat) + self.config["adam_eps"])
         )
         if proj:
             old_val = np.maximum(
@@ -266,6 +313,18 @@ class ZooAttack:
     def get_new_prob(
         self, modifier: np.ndarray, max_pooling_ratio: int = 8, gen_double: bool = False
     ):
+        """
+        Calculate the new probabilities by performing max pooling on the modifier.
+
+        Args:
+            modifier (np.ndarray): A numpy array containing the perturbation.
+            max_pooling_ratio (int): The ratio of the size of the patches to be max pooled.
+            gen_double (bool): Whether to double the size of the perturbation after max pooling.
+
+        Returns:
+            np.ndarray: A numpy array containing the new probabilities.
+
+        """
         modifier = np.squeeze(modifier)
         old_shape = modifier.shape
         if gen_double:
@@ -304,6 +363,17 @@ class ZooAttack:
         max_pooling_ratio: int = 8,
         reset_only: bool = False,
     ):
+        """
+        Resize the image to the specified size.
+
+        Args:
+            small_x (int): The new x size of the image.
+            small_y (int): The new y size of the image.
+            num_channels (int): The number of channels in the image.
+            modifier (np.ndarray): A numpy array containing the perturbation.
+            max_pooling_ratio (int): The ratio of the size of the patches to be max pooled.
+            reset_only (bool): Whether to only reset the image, or to resize and crop as well.
+        """
 
         small_single_shape = (small_x, small_y, num_channels)
 
@@ -344,31 +414,48 @@ class ZooAttack:
         max_pooling_ratio: int = 8,
         var_indice: list = None,
     ):
+        """
+        Perform a single step of optimization.
+
+        Args:
+            modifier (np.ndarray): A numpy array containing the perturbation.
+            orig_img (torch.tensor): The original image.
+            target (torch.tensor): The target image.
+            const (int): The constant to be used in the loss function.
+            max_pooling_ratio (int): The ratio of the size of the patches to be max pooled.
+            var_indice (list): The indices of the coordinates to be optimized.
+
+        Returns:
+            (float, float, float, np.ndarray, torch.tensor):
+                The total loss, the L2 loss, the confidence loss,
+                model output on perturbed image, the perturbed image.
+
+        """
 
         assert modifier.ndim == 4, "Expected 4D array as modifier"
         assert modifier.shape[0] == 1, "Expected 1 batch for modifier"
         assert target.ndim == 2, "Expected 2D tensor as target"
 
-        var = np.repeat(modifier, self.config.batch_size * 2 + 1, axis=0)
+        var = np.repeat(modifier, self.config["batch_size"] * 2 + 1, axis=0)
         var_size = modifier.size
 
         # Select indices for current iteration
 
         if var_indice is None:
-            if self.config.use_importance:
+            if self.config["use_importance"]:
                 var_indice = np.random.choice(
                     self.var_list.size,
-                    self.config.batch_size,
+                    self.config["batch_size"],
                     replace=False,
                     p=self.sample_prob,
                 )
             else:
                 var_indice = np.random.choice(
-                    self.var_list.size, self.config.batch_size, replace=False
+                    self.var_list.size, self.config["batch_size"], replace=False
                 )
         indices = self.var_list[var_indice]
 
-        for i in range(self.config.batch_size):
+        for i in range(self.config["batch_size"]):
             var[i * 2 + 1].reshape(-1)[indices[i]] += 0.0001
             var[i * 2 + 2].reshape(-1)[indices[i]] -= 0.0001
 
@@ -377,7 +464,7 @@ class ZooAttack:
             orig_img, new_img, target, const
         )
 
-        if modifier.shape[1] > self.config.init_size:
+        if modifier.shape[1] > self.config["init_size"]:
             self.sample_prob = self.get_new_prob(
                 modifier, max_pooling_ratio=max_pooling_ratio
             )
@@ -386,7 +473,7 @@ class ZooAttack:
         grad = self.zero_order_gradients(losses)
 
         # Modifier is updated here, so is adam epochs, mt_arr, and vt_arr
-        self.coordinate_adam(indices, grad, modifier, not self.config.use_tanh)
+        self.coordinate_adam(indices, grad, modifier, not self.config["use_tanh"])
 
         return (
             losses[0],
@@ -403,15 +490,28 @@ class ZooAttack:
         modifier_init: np.ndarray = None,
         max_pooling_ratio: int = 8,
     ):
+        """
+        Perform the attack on coordinate-batches.
+
+        Args:
+            orig_img (np.ndarray): The original image.
+            target (np.ndarray): The target image.
+            modifier_init (np.ndarray): The initial modifier. Default is `None`.
+            max_pooling_ratio (int): The ratio of the size of the patches to be max pooled.
+
+        Returns:
+            (np.ndarray, np.ndarray): The best perturbed image and best constant for scaling confidence loss.
+        """
+
         def compare(x, y):
             if not isinstance(x, (float, int, np.int64)):
                 x = np.copy(x)
-                if self.config.targeted:
-                    x[y] -= self.config.confidence
+                if self.config["targeted"]:
+                    x[y] -= self.config["confidence"]
                 else:
-                    x[y] += self.config.confidence
+                    x[y] += self.config["confidence"]
                 x = np.argmax(x)
-            if self.config.targeted:
+            if self.config["targeted"]:
                 return x == y
             else:
                 return x != y
@@ -423,10 +523,10 @@ class ZooAttack:
             assert modifier_init.ndim == 3, "Expected 3D array as modifier"
             modifier = modifier_init.copy()
         else:
-            if self.config.use_resize:
+            if self.config["use_resize"]:
                 modifier = self.resize_img(
-                    self.config.init_size,
-                    self.config.init_size,
+                    self.config["init_size"],
+                    self.config["init_size"],
                     3,
                     modifier_init,
                     max_pooling_ratio,
@@ -435,7 +535,7 @@ class ZooAttack:
             else:
                 modifier = np.zeros(orig_img.shape, dtype=np.float32)
 
-        if self.config.use_tanh:
+        if self.config["use_tanh"]:
             orig_img = np.arctanh(orig_img * 1.999999)
 
         var_size = np.prod(orig_img.shape)  # width * height * num_channels
@@ -452,10 +552,10 @@ class ZooAttack:
         self.sample_prob = np.ones(var_size, dtype=np.float32) / var_size
 
         low = 0.0
-        mid = self.config.initial_const
+        mid = self.config["initial_const"]
         high = 1e10
 
-        if not self.config.use_tanh:
+        if not self.config["use_tanh"]:
             self.up = 0.5 - orig_img.reshape(-1)
             self.down = -0.5 - orig_img.reshape(-1)
 
@@ -469,7 +569,7 @@ class ZooAttack:
         target = torch.from_numpy(target).unsqueeze(0).to(self.device)
         modifier = modifier.reshape((-1,) + modifier.shape)
 
-        for outer_step in range(self.config.binary_search_steps):
+        for outer_step in range(self.config["binary_search_steps"]):
 
             best_l2 = 1e10
             best_score = -1
@@ -485,10 +585,10 @@ class ZooAttack:
                 modifier = modifier_init.copy()
                 modifier = modifier.reshape((-1,) + modifier.shape)
             else:
-                if self.config.use_resize:
+                if self.config["use_resize"]:
                     modifier = self.resize_img(
-                        self.config.init_size,
-                        self.config.init_size,
+                        self.config["init_size"],
+                        self.config["init_size"],
                         3,
                         modifier_init,
                         max_pooling_ratio,
@@ -505,25 +605,25 @@ class ZooAttack:
             eval_costs = 0
 
             # NOTE: Original code allows for a custom start point in iterations
-            for iter in range(0, self.config.max_iterations):
-                if self.config.use_resize:
-                    if iter == self.config.resize_iter_1:
+            for iter in range(0, self.config["max_iterations"]):
+                if self.config["use_resize"]:
+                    if iter == self.config["resize_iter_1"]:
                         modifier = self.resize_img(
-                            self.config.init_size * 2,
-                            self.config.init_size * 2,
+                            self.config["init_size"] * 2,
+                            self.config["init_size"] * 2,
                             3,
                             modifier,
                             max_pooling_ratio,
                         )
-                    if iter == self.config.resize_iter_2:
+                    if iter == self.config["resize_iter_2"]:
                         modifier = self.resize_img(
-                            self.config.init_size * 4,
-                            self.config.init_size * 4,
+                            self.config["init_size"] * 4,
+                            self.config["init_size"] * 4,
                             3,
                             modifier,
                             max_pooling_ratio,
                         )
-                if iter % (self.config.max_iterations // 10) == 0:
+                if iter % (self.config["max_iterations"] // 10) == 0:
                     new_img = self.get_perturbed_image(orig_img, modifier)
                     (
                         total_losses,
@@ -547,7 +647,7 @@ class ZooAttack:
                     modifier, orig_img, target, mid, max_pooling_ratio=max_pooling_ratio
                 )
 
-                eval_costs += self.config.batch_size
+                eval_costs += self.config["batch_size"]
 
                 if (
                     confidence_loss == 0.0
@@ -555,7 +655,7 @@ class ZooAttack:
                     and stage == 0
                 ):
 
-                    if self.config.reset_adam_after_found:
+                    if self.config["reset_adam_after_found"]:
                         print("Resetting Adam")
                         self.mt_arr.fill(0.0)
                         self.vt_arr.fill(0.0)
@@ -565,7 +665,10 @@ class ZooAttack:
 
                 last_confidence_loss = confidence_loss
 
-                if self.config.abort_early and iter % self.config.early_stop_iters == 0:
+                if (
+                    self.config["abort_early"]
+                    and iter % self.config["early_stop_iters"] == 0
+                ):
                     if total_loss > prev * 0.9999:
                         print("Early stopping because there is no improvement")
                         break
