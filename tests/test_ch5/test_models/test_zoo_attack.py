@@ -1104,7 +1104,12 @@ class TestZooAttack(unittest.TestCase):
     def test_single_step(self):
 
         # Random Without Importance and init size reduce
-        attack = deepcopy(self.attack)
+        attack = ZooAttack(
+            model=self.model,
+            config=self.config,
+            input_image_shape=self.orig_img.shape[1:],
+            device="cpu:0",
+        )
         attack.config["use_importance"] = False
         attack.config["init_size"] = 2
         modifier = deepcopy(self.modifier)
