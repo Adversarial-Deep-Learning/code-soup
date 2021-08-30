@@ -1,5 +1,5 @@
 """
-Implements ZOO (Zero-Order Optimization) Attack. 
+Implements ZOO (Zero-Order Optimization) Attack.
 
 This code is based on the L2-attack from the original implementation of the attack:
 https://github.com/huanzhang12/ZOO-Attack/blob/master/l2_attack_black.py
@@ -9,7 +9,8 @@ Usage:
     >>> from code_soup.ch5.models.zoo_attack import ZOOAttack
     >>> config = json.load(open('./code-soup/ch5/models/configs/zoo_attack.json'))
     >>> attack = ZOOAttack(model, config, input_image_shape=[28, 28, 3], device = 'cpu')
-    >>> adv_img, const = attack.attack(orig_img, target) # Targeted or untargeted is decided via config
+    >>> adv_img, const = attack.attack(orig_img, target)
+
 """
 from typing import Dict, List
 
@@ -399,7 +400,7 @@ class ZooAttack:
         # update sample probability
         if reset_only:
             self.sample_prob = np.ones(var_size, dtype=np.float32) / var_size
-        else:
+        else:  # pragma: no cover
             self.sample_prob = self.get_new_prob(prev_modifier, max_pooling_ratio, True)
             self.sample_prob = self.sample_prob.reshape(var_size)
 
@@ -696,9 +697,9 @@ class ZooAttack:
             else:
                 print("Old Constant: ", mid)
                 low = max(low, mid)
-                if high < 1e9:
+                if high < 1e9:  # pragma: no cover
                     mid = (low + high) / 2
-                else:
+                else:  # pragma: no cover
                     mid *= 10
                 print("new constant: ", mid)
 
