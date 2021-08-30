@@ -164,9 +164,11 @@ class ZooAttack:
         new_img = new_img.permute(0, 3, 1, 2)
 
         model_output = self.model(new_img)
+
         if self.config["use_log"]:
             model_output = F.softmax(model_output, dim=1)
 
+        print("Model Output:", model_output)
         real = torch.sum(target * model_output, dim=1)
         other = torch.max((1 - target) * model_output - (target * 10000), dim=1)[0]
 
