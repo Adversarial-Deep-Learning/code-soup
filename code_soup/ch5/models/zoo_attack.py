@@ -258,6 +258,7 @@ class ZooAttack:
         Returns:
             np.ndarray: A numpy array containing the zero order gradients for the losses.
         """
+        print("Losses:", losses)
         grad = np.zeros(self.config["batch_size"])
         for i in range(self.config["batch_size"]):
             grad[i] = (losses[i * 2 + 1] - losses[i * 2 + 2]) / 0.0002
@@ -400,7 +401,7 @@ class ZooAttack:
         # update sample probability
         if reset_only:
             self.sample_prob = np.ones(var_size, dtype=np.float32) / var_size
-        else:  # pragma: no cover
+        else:
             self.sample_prob = self.get_new_prob(prev_modifier, max_pooling_ratio, True)
             self.sample_prob = self.sample_prob.reshape(var_size)
 
