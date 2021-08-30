@@ -57,13 +57,11 @@ class VisualPerturbation(Perturbation):
             return torch.linalg.norm(self.flatten(self.subtract(self.original,self.perturbed)), ord = p).item()
 
     def calculate_PSNR(self) -> float:
-        return 20 * log10(255.0/self.calculate_RMSE())
+        return 20 * log10(1.0/self.calculate_RMSE())
 
     def calculate_RMSE(self) -> float:
-        # return torch.sqrt(torch.mean(self.subtract(self.flatten(self.original), self.flatten(self.perturbed))**2)).item()
-        # loss = nn.MSELoss()
-        # return (loss(self.original, self.perturbed)**0.5).item()
-        raise NotImplementedError
+        loss = nn.MSELoss()
+        return (loss(self.original, self.perturbed)**0.5).item()
 
     def calculate_SAM(self):
         raise NotImplementedError
