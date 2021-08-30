@@ -216,7 +216,9 @@ class ZooAttack:
             np.ndarray: A numpy array containing the total loss for the original image and the perturbed images.
         """
         l2_loss = self.l2_distance_loss(orig_img, new_img)
+        print("L2 Loss: ", l2_loss)
         confidence_loss, model_output = self.confidence_loss(new_img, target)
+        print("Confidence Loss: ", confidence_loss)
         return (
             l2_loss + const * confidence_loss,
             l2_loss,
