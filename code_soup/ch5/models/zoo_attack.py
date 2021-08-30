@@ -184,6 +184,8 @@ class ZooAttack:
         print("Targeted: ", self.config["targeted"])
         print("Target: ", target)
         print("confidence: ", confidence)
+        print("Real: ", real)
+        print("Other: ", other)
         if self.config["targeted"]:
             # If targetted, optimize for making the other class most likely
             output = (
