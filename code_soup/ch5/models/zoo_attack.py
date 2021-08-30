@@ -348,7 +348,7 @@ class ZooAttack:
         # NOTE: This is here to handle all zeros input
         if np.sum(prob) != 0:
             prob /= np.sum(prob)
-        else:
+        else:  # pragma: no cover
             prob = np.ones(shape=new_shape, dtype=np.float32)
             prob /= np.sum(prob)
 
