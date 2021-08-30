@@ -170,6 +170,7 @@ class ZooAttack:
         real = torch.sum(target * model_output, dim=1)
         other = torch.max((1 - target) * model_output - (target * 10000), dim=1)[0]
 
+        print("Use Log: ", self.config["use_log"])
         if self.config["use_log"]:
             real = torch.log(real + 1e-30)
             other = torch.log(other + 1e-30)
@@ -178,6 +179,7 @@ class ZooAttack:
             torch.float64
         )
 
+        print("Targeted: ", self.config["targeted"])
         if self.config["targeted"]:
             # If targetted, optimize for making the other class most likely
             output = (

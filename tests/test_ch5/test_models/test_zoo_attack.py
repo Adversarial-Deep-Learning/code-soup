@@ -1215,6 +1215,7 @@ class TestZooAttack(unittest.TestCase):
                 atol=1e-5,
             )
         )
+        self.assertTrue(False)
         self.assertTrue(
             np.allclose(
                 attack.vt_arr,
@@ -1423,5 +1424,3 @@ class TestZooAttack(unittest.TestCase):
             orig_img, labels, max_pooling_ratio=2
         )
         self.assertEqual(outer_best_adv.shape, self.modifier.shape[1:])
-
-        attack.config["use_tanh"] = False
