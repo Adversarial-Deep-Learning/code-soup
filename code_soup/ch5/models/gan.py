@@ -214,4 +214,4 @@ class GAN:
         D_G_z2 = output.mean().item()
         # Update G
         self.generator.optimizer.step()
-        return D_x, D_G_z1, errD, D_G_z2,errG
+        return D_x, D_G_z1, errD, D_G_z2, errG
