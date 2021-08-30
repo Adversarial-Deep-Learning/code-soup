@@ -455,7 +455,7 @@ class ZooAttack:
                     self.var_list.size, self.config["batch_size"], replace=False
                 )
         indices = self.var_list[var_indice]
-        print(indices)
+        print("Indices: ", indices)
 
         for i in range(self.config["batch_size"]):
             var[i * 2 + 1].reshape(-1)[indices[i]] += 0.0001
@@ -473,6 +473,8 @@ class ZooAttack:
             self.sample_prob = self.sample_prob.reshape(var_size)
 
         grad = self.zero_order_gradients(losses)
+
+        print("Grad: ", grad)
 
         # Modifier is updated here, so is adam epochs, mt_arr, and vt_arr
         self.coordinate_adam(indices, grad, modifier, not self.config["use_tanh"])
