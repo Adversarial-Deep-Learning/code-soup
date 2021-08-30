@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from code_soup.common.utils import torch_seed
+from code_soup.common.utils.seeding import Seeding
 
 
 class TestTorchSeed(unittest.TestCase):
@@ -10,5 +10,5 @@ class TestTorchSeed(unittest.TestCase):
 
     def test_torch_seed(self):
         """Test that the torch seed is set."""
-        torch_seed(42)
+        Seeding.set_seeding(42)
         self.assertEqual(np.random.get_state()[1][0], 42)
