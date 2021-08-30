@@ -20,5 +20,5 @@ class TestOnePixelAttack(unittest.TestCase):
             targeted=False,
             maxiter=1,
             popsize=1,
-            verbose=False
+            verbose=False,
         )

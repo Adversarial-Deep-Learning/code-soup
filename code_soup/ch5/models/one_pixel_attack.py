@@ -16,7 +16,7 @@ class OnePixelAttack:
 
     """
 
-    def __init__(self, model, device=None): 
+    def __init__(self, model, device=None):
 
         """
 
@@ -35,7 +35,7 @@ class OnePixelAttack:
         if self.device is None:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    def perturb_image(self, perturbation, orig_img): # pragma: no cover
+    def perturb_image(self, perturbation, orig_img):  # pragma: no cover
         """
         Parameters
         ----------
@@ -49,7 +49,7 @@ class OnePixelAttack:
 
         return new_img
 
-    def perturbation_image(self, perturbation_array, image): # pragma: no cover
+    def perturbation_image(self, perturbation_array, image):  # pragma: no cover
         """
         Applies multiple perturbation to a single image
         Parameters
@@ -71,7 +71,7 @@ class OnePixelAttack:
 
         return new_image
 
-    def predict_class(self, xs, img, target_class, minimize=True): # pragma: no cover
+    def predict_class(self, xs, img, target_class, minimize=True):  # pragma: no cover
         """
         Parameters
         ----------
@@ -89,7 +89,7 @@ class OnePixelAttack:
         # if needed basically is targetted increase the prob
         return prediction if minimize else 1 - prediction
 
-    def model_predict(self, image): # pragma: no cover
+    def model_predict(self, image):  # pragma: no cover
         """
         Helper function to predict probs from the model of just 1 image
         """
@@ -102,7 +102,7 @@ class OnePixelAttack:
 
     def attack_success(
         self, x, img, target_class, targeted_attack=False, verbose=False
-    ): # pragma: no cover
+    ):  # pragma: no cover
         """
         check if the attack is a success. the callback helper function for differential_evolution
         Parameters
@@ -140,7 +140,7 @@ class OnePixelAttack:
         maxiter=75,
         popsize=400,
         verbose=False,
-    ): # pragma: no cover
+    ):  # pragma: no cover
 
         """
         Runs the attack on a single image, searches the image space
@@ -259,7 +259,6 @@ class OnePixelAttack:
             List of all the best perturbations to the images in the batch
 
         """
-        
 
         images, image_orig_label = data
         batch_size = len(images)
@@ -273,7 +272,7 @@ class OnePixelAttack:
             targets = [None] if not targeted else range(len(labels))
 
             for target in targets:
-                if targeted: # pragma: no cover
+                if targeted:  # pragma: no cover
                     print("Attacking with target", labels[target])
                     if target == orig_label:
                         continue
