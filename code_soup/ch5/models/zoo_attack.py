@@ -455,6 +455,7 @@ class ZooAttack:
                     self.var_list.size, self.config["batch_size"], replace=False
                 )
         indices = self.var_list[var_indice]
+        print(indices)
 
         for i in range(self.config["batch_size"]):
             var[i * 2 + 1].reshape(-1)[indices[i]] += 0.0001

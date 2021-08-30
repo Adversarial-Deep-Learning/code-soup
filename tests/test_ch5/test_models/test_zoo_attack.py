@@ -1135,7 +1135,7 @@ class TestZooAttack(unittest.TestCase):
         # With Custom Indices
         attack = deepcopy(self.attack)
         modifier = deepcopy(self.modifier)
-        indices = np.array([15, 24, 32, 45])
+        indices = [15, 24, 32, 45]
         (
             total_loss,
             l2_loss,
