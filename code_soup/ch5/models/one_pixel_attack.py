@@ -259,20 +259,21 @@ class OnePixelAttack:
             List of all the best perturbations to the images in the batch
 
         """
-        batch_size = len(data)
+        
 
         images, image_orig_label = data
+        batch_size = len(images)
 
         # store the best perturbation for all the images in the batch
         perturbation_array = []
 
         for i in range(batch_size):
             image = images[i].detach().numpy()
-            orig_label = image_orig_label[i].detach().numpy()
+            orig_label = image_orig_label[i].detach().numpy().astype(int)
             targets = [None] if not targeted else range(len(labels))
 
             for target in targets:
-                if targeted:
+                if targeted: # pragma: no cover
                     print("Attacking with target", labels[target])
                     if target == orig_label:
                         continue
