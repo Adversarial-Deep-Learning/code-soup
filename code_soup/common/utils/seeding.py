@@ -29,5 +29,3 @@ class Seeding:
         random.seed(self.value)
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed(self.value)
