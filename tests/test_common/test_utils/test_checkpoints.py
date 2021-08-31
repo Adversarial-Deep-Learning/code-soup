@@ -5,7 +5,6 @@ import numpy as np
 import torch
 import torch.optim as optim
 import torchvision.models as models
-from torch.nn.modules.module import T
 
 from code_soup.common.utils.checkpoints import Checkpoints
 
