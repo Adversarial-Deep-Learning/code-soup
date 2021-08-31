@@ -5,14 +5,29 @@ import torch
 
 
 class Seeding:
-    seed = 42
+    """
+    A class used for seeding
+
+    Class Variables
+    ---------------
+    value
+        - to store value of seed
+
+    Class Methods
+    -------------
+    seed(self, value)
+        -Set random seed for everything
+    """
+
+    value = 42
 
     @classmethod
-    def set_seeding(self, seed):
-        self.seed = seed
-        np.random.seed(self.seed)
-        torch.manual_seed(self.seed)
-        torch.cuda.manual_seed(self.seed)
-        random.seed(self.seed)
+    def seed(self, value):
+        self.value = value
+        np.random.seed(self.value)
+        torch.manual_seed(self.value)
+        random.seed(self.value)
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed(self.value)
