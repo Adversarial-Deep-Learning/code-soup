@@ -6,7 +6,7 @@ import torch
 import torch.optim as optim
 import torchvision.models as models
 
-from code_soup.common.utils.checkpoints import Checkpoints
+from code_soup.common.utils import Checkpoints
 
 
 class TestCheckpoints(unittest.TestCase):
