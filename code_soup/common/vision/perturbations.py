@@ -26,9 +26,8 @@ class VisualPerturbation(Perturbation):
         """
         self.original = self.__totensor(original)
         self.perturbed = self.__totensor(perturbed)
-        self.original = self.original.type(dtype = torch.float64)
-        self.perturbed = self.perturbed.type(dtype = torch.float64)
-
+        self.original = self.original.type(dtype=torch.float64)
+        self.perturbed = self.perturbed.type(dtype=torch.float64)
 
     def __flatten(self, atensor: torch.Tensor) -> torch.Tensor:
         """
@@ -37,38 +36,40 @@ class VisualPerturbation(Perturbation):
         """
         return torch.flatten(atensor)
 
-
     def __totensor(self, anarray: Union[np.ndarray, torch.Tensor]) -> torch.Tensor:
         """
-        A method which will convert anything inputted into a Torch tensor. 
+        A method which will convert anything inputted into a Torch tensor.
         If it is already a torch tensor it will return itself
-        
+
         """
         if type(anarray) == torch.Tensor:
             return anarray
         else:
             return torch.from_numpy(anarray)
 
-
     def sam(self, convert_to_degree=True):
         """
         Spectral Angle Mapper defines the spectral similarity by the angle between the image pixel spectrum
         Expects the Images to be in (C,H,W) format
-        
+
         Parameters
         ----------
         convert_to_degree
             - will return the spectral angle in degrees(default true)
-        
+
         """
         original_img = self.original
         new_img = self.perturbed
-          
-        assert original_img.size() == new_img.size(), 'Size of the inputs not same please give correct values to SAM metric'
-        
+
+        assert (
+            original_img.size() == new_img.size()
+        ), "Size of the inputs not same please give correct values to SAM metric"
+
         # assuming the image is in (C,H,W) method
-        numerator = torch.sum(torch.mul(new_img, original_img),axis=0)
-        denominator = torch.linalg.norm(original_img, axis=0) * torch.linalg.norm(new_img, axis=0)
+        numerator = torch.sum(torch.mul(new_img, original_img), axis=0)
+        denominator = torch.linalg.norm(original_img, axis=0) * torch.linalg.norm(
+            new_img, axis=0
+        )
         val = torch.clip(numerator / denominator, -1, 1)
         sam_angles = torch.arccos(val)
         if convert_to_degree:
@@ -78,7 +79,6 @@ class VisualPerturbation(Perturbation):
         # et al. (2018) use degrees. We therefore made this configurable, with degree the default
         return torch.mean(torch.nan_to_num(sam_angles)).item()
 
-
     def sre(self):
         """
         signal to reconstruction error ratio
@@ -86,14 +86,33 @@ class VisualPerturbation(Perturbation):
         """
         original_img = self.original
         new_img = self.perturbed
-        
-        assert original_img.size()==new_img.size(), 'Size of the inputs not same please give correct values to SRE'
+
+        assert (
+            original_img.size() == new_img.size()
+        ), "Size of the inputs not same please give correct values to SRE"
 
         sre_final = []
         for i in range(original_img.shape[0]):
-            numerator = torch.square(torch.mean(original_img[:, :, ][i]))
-            denominator = (torch.linalg.norm(original_img[:, :, ][i] - new_img[:, :, ][i])) /\
-                          (original_img.shape[2] * original_img.shape[1])
-            sre_final.append(numerator/denominator)
-        sre_final = torch.as_tensor(sre_final) 
+            numerator = torch.square(
+                torch.mean(
+                    original_img[
+                        :,
+                        :,
+                    ][i]
+                )
+            )
+            denominator = (
+                torch.linalg.norm(
+                    original_img[
+                        :,
+                        :,
+                    ][i]
+                    - new_img[
+                        :,
+                        :,
+                    ][i]
+                )
+            ) / (original_img.shape[2] * original_img.shape[1])
+            sre_final.append(numerator / denominator)
+        sre_final = torch.as_tensor(sre_final)
         return (10 * torch.log10(torch.mean(sre_final))).item()
