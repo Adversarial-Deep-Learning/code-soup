@@ -26,7 +26,7 @@ Index for tutorials and test suite for each algorithm.
 
 | Topic, Chapter | Tutorial |
 |--|--|
-| Generative Adversarial Networks (Chapter 5) | [Tutorial](./Tutorial/ch5/GAN/GAN_Tutorial.ipynb) |
+| Generative Adversarial Networks (Chapter 5) | [Tutorial](./Tutorials/ch5/GAN/GAN_Tutorial.ipynb) |
 
 
 ## Contribution
