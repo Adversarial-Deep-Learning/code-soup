@@ -3,7 +3,7 @@ from typing import Any, Tuple
 import torch
 import torchvision
 
-from code_soup.common.vision.datasets import VisionDataset
+from code_soup.common.vision.datasets.vision_dataset import VisionDataset
 
 
 class ImageClassificationDataset(torch.utils.data.Dataset, VisionDataset):
