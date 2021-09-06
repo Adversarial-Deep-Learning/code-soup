@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torchvision
 
-from code_soup.ch5.models.zoo_attack import ZooAttack
+from code_soup.ch5 import ZooAttack
 
 
 class TestZooAttack(unittest.TestCase):
