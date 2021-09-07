@@ -3,7 +3,7 @@ import unittest
 import torch
 import torch.nn as nn
 
-from code_soup.common.vision.models.nin import NIN
+from code_soup.common.vision.models import NIN
 
 
 class TestNIN(unittest.TestCase):
