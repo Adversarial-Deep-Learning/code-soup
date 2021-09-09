@@ -27,8 +27,7 @@ Main package to be used in fencing and build attacks / defenses
 |	+-- rl/		#Same as above
 # For every chapter ->
 +-- ch{Chapter_Number}/ #Code refering to a particular chapter
-|	+-- utils/ #Utils Required for the chapter
-|	+-- models/ #Attackers or Defenders used in the chapter
+|	+-- algorithms/ #Attackers or Defenders used in the chapter
 |	|	+--{Name_of_Attack/Defense}.py
 # There will be exactly one file pertaining to the agents.
 # This is supposed to be parallel to the pseudcode in a book.
@@ -50,10 +49,11 @@ For Unit testing of each module in the package
 |   |   +-- test_dataset/
 |	+-- test_text/
 |	+-- test_rl/
+|	+-- test_utils/
+
 # For every chapter ->
 +-- test_ch{Chapter_Number}/
-|	+-- test_utils/
-|	+-- test_models/
+|	+-- test_algorithms/
 |	|	+--test_{Name_of_Attack/Defense}.py
 ```
 
