@@ -42,6 +42,10 @@ class ATNBase(nn.Module):
             "Forward for ATNBase has not been implemented. Please use child classes for a model."
         )
 
+    def compute_loss(self, x, x_hat, y, y_hat):
+        loss_fn = nn.MSELoss()
+        return self.beta * loss_fn(x, x_hat) + loss_fn(y, y_hat)
+
 
 class AAE(ATNBase):
     def __init__(
@@ -130,7 +134,7 @@ class AAE(ATNBase):
         return logits
 
 
-class PATN(nn.Module):
+class PATN(ATNBase):
     def __init__(
         self,
         classifier_model: torch.nn.Module,
