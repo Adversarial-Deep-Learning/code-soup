@@ -1,0 +1,23 @@
+{
+    "binary_search_steps": 1,
+    "max_iterations": 10000,
+    "learning_rate": 2e-3,
+    "abort_early": true,
+    "targeted": true,
+    "confidence": 0,
+    "initial_const": 0.5,
+    "use_log": false,
+    "use_tanh": true,
+    "reset_adam_after_found": false,
+    "batch_size": 128,
+    "const": 0.5,
+    "early_stop_iters": 0,
+    "adam_beta1": 0.9,
+    "adam_beta2": 0.999,
+    "use_importance": true,
+    "use_resize": false,
+    "init_size": 32,
+    "adam_eps": 1e-8,
+    "resize_iter_1": 2000,
+    "resize_iter_2": 10000
+}
