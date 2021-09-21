@@ -5,6 +5,8 @@ Assumptions:
     - The classifier model outptus softmax logits.
 """
 
+from typing import Tuple, Union
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -21,6 +23,19 @@ class ATNBase(nn.Module):
         device: torch.device = torch.device("cpu"),
         lr: float = 0.001,
     ):
+        """
+        Initializes ATN Base class.
+
+        Args:
+            classifier_model (torch.nn.Module):
+                A pre-trained classification model that outputs logits (without softmax).
+            target_idx (int): The index of the target class.
+            alpha (float): The value by which the max logit is multiplied and set at target index.
+            beta (float): The weight for the perturbation loss.
+            device (torch.device): The device to use.
+            lr (float): The learning rate.
+        """
+
         super(ATNBase, self).__init__()
         if alpha <= 1:
             raise ValueError("Alpha must be greater than 1")
@@ -35,8 +50,20 @@ class ATNBase(nn.Module):
 
     # TODO: Check if this seems okay
     @torch.no_grad()
-    def rerank(self, softmax_logits):
+    def rerank(self, softmax_logits: torch.Tensor) -> torch.Tensor:
+        """
+        Re-ranks the softmax logits.
+
+        Args:
+            softmax_logits (torch.Tensor): The softmax logits to be re-ranked.
+        Returns:
+            torch.Tensor: The re-ranked softmax logits.
+        """
+
+        # Get the max logit
         max_logits = torch.max(softmax_logits, dim=1).values
+
+        # Set the max logit at the target index and multiply by self.alpha
         softmax_logits[:, self.target_idx] = max_logits * self.alpha
         softmax_logits = softmax_logits / torch.linalg.norm(
             softmax_logits, dim=-1
@@ -44,29 +71,50 @@ class ATNBase(nn.Module):
         return softmax_logits
 
     def forward(self, x):
+        """
+        Forward pass of the model. Not implemented for this class.
+
+        Args:
+            x (torch.Tensor): The input to the model.
+
+        Raises:
+            NotImplementedError: This method is not implemented.
+        """
+
         raise NotImplementedError(
             "Forward for ATNBase has not been implemented. Please use child classes for a model."
         )
 
-    def compute_loss(self, x, x_hat, y, y_hat):
+    def compute_loss(
+        self, x: torch.Tensor, x_hat: torch.Tensor, y: torch.Tensor, y_hat: torch.Tensor
+    ) -> torch.Tensor:
         """
         Computes the loss for input and output.
+
+        Args:
+            x (torch.Tensor): The original input to the classification/ATN model.
+            x_hat (torch.Tensor): The adversarial output from the ATN model.
+            y (torch.Tensor): The re-ranked logits from the classification model.
+            y_hat (torch.Tensor): The output logits from the classifier on the adversarial input.
+
+        Returns:
+            torch.Tensor: A tensor containing loss.
+
         """
         return self.beta * self.loss_fn(x, x_hat) + self.loss_fn(y, y_hat)
 
-    def step(self, data: torch.Tensor):
+    def step(self, data: torch.Tensor) -> Tuple[Union[torch.Tensor, float]]:
         """
-        Iterates the model for a single batch of data, calculates the loss and updates the model parameters.
-        Parameters
-        ----------
-        data : torch.Tensor
-            Batch of data
-        Returns
-        -------
-            adv_out : torch.Tensor
-                Batch of adversarial images.
-            adv_logits : torch.Tensor
-                Logits of the model after transformation.
+        Performs a single optimization step.
+
+        Args:
+            data (torch.Tensor): The data to be used for the optimization step.
+
+        Returns:
+            Tuple[Union[torch.Tensor, float]]:
+                A tuple containing the adversarial image,
+                the softmax logits from the classifier model on the adversarial image,
+                and the loss.
         """
         image, label = data
         image = image.to(self.device)
@@ -102,6 +150,23 @@ class SimpleAAE(ATNBase):
         deconv_num_channels: list = [64, 64],
         typ="a",
     ):
+        """
+        Initializes the SimpleAAE class. In these type of ATNs adversarial images are produced.
+
+        Args:
+            classifier_model (torch.nn.Module):
+                A pre-trained classification model that outputs logits (without softmax).
+            target_idx (int): The index of the target class.
+            alpha (float): The value by which the max logit is multiplied and set at target index.
+            beta (float): The weight for the perturbation loss.
+            device (torch.device): The device to use.
+            lr (float): The learning rate.
+            input_shape (tuple): The shape of the input.
+            num_channels (list): The number of channels in each convolutional layer.
+            deconv_num_channels (list): The number of channels in each deconvolutional layer.
+            typ (str): The type of the model. One of 'a', 'b', 'c'. Based on the paper.
+        """
+
         assert typ in ["a", "b", "c"]
         super(SimpleAAE, self).__init__(
             classifier_model, target_idx, alpha, beta, device, lr
@@ -178,11 +243,23 @@ class SimpleAAE(ATNBase):
 
         self.atn = nn.Sequential(*layers)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor]:
+        """
+        Performs a forward pass on the model.
+
+        Args:
+            x (torch.Tensor): The input to the model.
+
+        Returns:
+            Tuple[torch.Tensor]:
+                The adversarial output of the ATN model,
+                the softmax logits from the classifier model on the adversarial image.
+        """
         adv_out = self.atn(x)
         adv_out = adv_out.view(-1, *self.input_shape)
         logits = self.classifier_model(adv_out)
-        return adv_out, logits
+        softmax_logits = F.softmax(logits, dim=1)
+        return adv_out, softmax_logits
 
 
 class SimplePATN(ATNBase):
@@ -197,6 +274,21 @@ class SimplePATN(ATNBase):
         input_shape: tuple = (1, 28, 28),
         num_channels: list = [64, 64],
     ):
+
+        """
+        Initializes the SimplePATN class. In these type of ATNs, perturbations are produced.
+
+        Args:
+            classifier_model (torch.nn.Module):
+                A pre-trained classification model that outputs logits (without softmax).
+            target_idx (int): The index of the target class.
+            alpha (float): The value by which the max logit is multiplied and set at target index.
+            beta (float): The weight for the perturbation loss.
+            device (torch.device): The device to use.
+            lr (float): The learning rate.
+            input_shape (tuple): The shape of the input.
+            num_channels (list): The number of channels in each convolutional layer.
+        """
         super(SimplePATN, self).__init__(
             classifier_model, target_idx, alpha, beta, device, lr
         )
@@ -208,7 +300,6 @@ class SimplePATN(ATNBase):
         for i in range(len(sizes) - 1):
             layers.append(nn.Conv2d(sizes[i], sizes[i + 1], kernel_size=3, padding=1))
             layers.append(nn.ReLU())
-            # TODO: Check if Max Pooling is needed here.
 
         layers.append(nn.Flatten())
         layers.append(
@@ -224,7 +315,19 @@ class SimplePATN(ATNBase):
         self.atn = nn.Sequential(*layers)
 
     def forward(self, x):
+        """
+        Performs a forward pass on the model.
+
+        Args:
+            x (torch.Tensor): The input to the model.
+
+        Returns:
+            Tuple[torch.Tensor]:
+                The adversarial image for the model,
+                the softmax logits from the classifier model on the adversarial image.
+        """
         adv_out = self.atn(x)
         adv_out = adv_out.view(-1, *self.input_shape)
         logits = self.classifier_model(adv_out + x)
-        return adv_out + x, logits
+        softmax_logits = F.softmax(logits, dim=1)
+        return adv_out + x, softmax_logits
