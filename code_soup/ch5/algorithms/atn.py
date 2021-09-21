@@ -8,6 +8,7 @@ Assumptions:
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.optim as optim
 
 
 class ATNBase(nn.Module):
@@ -30,6 +31,7 @@ class ATNBase(nn.Module):
         self.device = device
         self.lr = lr
         self.loss_fn = nn.MSELoss()
+        self.optimizer = optim.Adam(self.parameters(), lr=lr)
 
     # TODO: Check if this seems okay
     @torch.no_grad()
@@ -83,7 +85,7 @@ class ATNBase(nn.Module):
         loss.backward()
 
         self.optimizer.step()
-        return adv_out, adv_logits
+        return adv_out, adv_logits, loss.item()
 
 
 class SimpleAAE(ATNBase):

@@ -186,6 +186,38 @@ class TestSimpleAAE(unittest.TestCase):
         self.assertTrue(isinstance(adv_logits, torch.Tensor))
         self.assertEqual(tuple(adv_logits.shape), (2, 10))
 
+    def test_step(self):
+        x = torch.tensor(
+            [
+                [
+                    [
+                        [0.1677, 1.3509, -0.8152],
+                        [-0.6369, -1.2858, 0.4709],
+                        [0.8874, 0.0070, 0.1990],
+                    ]
+                ],
+                [
+                    [
+                        [-1.4228, 0.6089, -0.2605],
+                        [-0.3259, -0.1384, -0.8231],
+                        [-2.6140, 0.3131, -0.4660],
+                    ]
+                ],
+            ]
+        )
+
+        y = torch.tensor([])
+
+        adv_out, adv_logits, loss_item = self.model_a.step((x, y))
+
+        self.assertTrue(isinstance(adv_out, torch.Tensor))
+        self.assertEqual(tuple(adv_out.shape), (2, 1, 3, 3))
+
+        self.assertTrue(isinstance(adv_logits, torch.Tensor))
+        self.assertEqual(tuple(adv_logits.shape), (2, 10))
+
+        self.assertTrue(isinstance(loss_item, float))
+
 
 class TestSimplePATN(unittest.TestCase):
     @classmethod
@@ -227,3 +259,35 @@ class TestSimplePATN(unittest.TestCase):
 
         self.assertTrue(isinstance(adv_logits, torch.Tensor))
         self.assertEqual(tuple(adv_logits.shape), (2, 10))
+
+    def test_step(self):
+        x = torch.tensor(
+            [
+                [
+                    [
+                        [0.1677, 1.3509, -0.8152],
+                        [-0.6369, -1.2858, 0.4709],
+                        [0.8874, 0.0070, 0.1990],
+                    ]
+                ],
+                [
+                    [
+                        [-1.4228, 0.6089, -0.2605],
+                        [-0.3259, -0.1384, -0.8231],
+                        [-2.6140, 0.3131, -0.4660],
+                    ]
+                ],
+            ]
+        )
+
+        y = torch.tensor([])
+
+        adv_out, adv_logits, loss_item = self.model.step((x, y))
+
+        self.assertTrue(isinstance(adv_out, torch.Tensor))
+        self.assertEqual(tuple(adv_out.shape), (2, 1, 3, 3))
+
+        self.assertTrue(isinstance(adv_logits, torch.Tensor))
+        self.assertEqual(tuple(adv_logits.shape), (2, 10))
+
+        self.assertTrue(isinstance(loss_item, float))
