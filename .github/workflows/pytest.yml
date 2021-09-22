@@ -31,4 +31,6 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
+    - name: Enforce typing
+      run: |
         mypy --config-file mypy.ini
