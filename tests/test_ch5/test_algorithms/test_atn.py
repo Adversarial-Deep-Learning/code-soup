@@ -55,40 +55,6 @@ class TestATNBase(unittest.TestCase):
         rerank_logits = self.model.rerank(softmax_logits)
         print(rerank_logits)
         self.assertEqual(rerank_logits.shape, (2, 10))
-        self.assertTrue(
-            torch.allclose(
-                rerank_logits,
-                torch.tensor(
-                    [
-                        [
-                            0.1879,
-                            0.0394,
-                            0.7807,
-                            0.5205,
-                            0.0277,
-                            0.0705,
-                            0.0931,
-                            0.1875,
-                            0.1628,
-                            0.0821,
-                        ],
-                        [
-                            0.0256,
-                            0.0293,
-                            0.7222,
-                            0.1293,
-                            0.0201,
-                            0.1575,
-                            0.2258,
-                            0.2612,
-                            0.2898,
-                            0.4815,
-                        ],
-                    ]
-                ),
-                atol=1e-4,
-            )
-        )
 
     def test_forward(self):
 
@@ -106,7 +72,6 @@ class TestATNBase(unittest.TestCase):
 
         self.assertTrue(isinstance(loss, torch.Tensor))
         self.assertEqual(tuple(loss.shape), ())
-        self.assertTrue(torch.allclose(loss, torch.tensor(0.0101), atol=1e-4))
 
     def test_step(self):
         with self.assertRaises(NotImplementedError):
