@@ -1,7 +1,6 @@
 import random
 import unittest
 
-import pytest
 from parameterized import parameterized_class
 
 from code_soup.common.text import perturbations

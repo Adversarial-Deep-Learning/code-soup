@@ -3,7 +3,7 @@ import unittest
 import torch
 import torch.nn as nn
 
-from code_soup.ch5.models.one_pixel_attack import OnePixelAttack
+from code_soup.ch5 import OnePixelAttack
 
 
 class TestOnePixelAttack(unittest.TestCase):

@@ -3,7 +3,7 @@ import unittest
 import torch
 import torch.nn as nn
 
-from code_soup.common.vision.models.simple_cnn_classifier import SimpleCnnClassifier
+from code_soup.common.vision.models import SimpleCnnClassifier
 
 
 class TestSimpleCnnClassifier(unittest.TestCase):

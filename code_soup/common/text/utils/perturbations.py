@@ -226,7 +226,7 @@ class TypoCharacterPerturbations(CharacterPerturbations):
         positions_to_shift = random.sample(range(chars), num_chars_to_shift)
 
         # defining a dictionary of keys located close to each character
-        json_path = Path("code_soup/common/text/keys_in_proximity.json")
+        json_path = Path("code_soup/common/text/utils/json/keys_in_proximity.json")
         keys_in_proximity = json.load(open(json_path, "r"))
 
         for i, c in enumerate(word):
@@ -257,7 +257,7 @@ class VisuallySimilarCharacterPerturbations(CharacterPerturbations):
         Pass "unicode" and "homoglyph" as
         the args.
         """
-        json_path = Path("code_soup/common/text/homoglyph.json")
+        json_path = Path("code_soup/common/text/utils/json/homoglyph.json")
 
         self.homoglyph_dic = json.load(open(json_path, "r"))
         self.arg = args
