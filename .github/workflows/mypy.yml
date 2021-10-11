@@ -10,7 +10,7 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  typing:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
