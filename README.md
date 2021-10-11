@@ -7,6 +7,9 @@
 
 Despite the great success of deep neural networks in a wide range of applications, they have been repeatedly shown to be vulnerable to adversarial attacks. *Adversarial Deep Learning* is a book being written by [Dr. Di Jin](https://scholar.google.com/citations?user=x5QTK9YAAAAJ&hl=en), [Dr. Yifang Yin](https://yifangyin.github.io/), [Yaman Kumar](https://sites.google.com/view/yaman-kumar/), and [Dr. Rajiv Ratn Shah](https://www.iiitd.ac.in/rajivratn), which gives the reader an introduction to the progress made in this field. At code-soup we are building the codebase of these algorithms in a *clean, simple and minimal* manner . We strive to give the reader a smooth experience while reading the book and understanding the code in parallel with a minimal set of dependencies and library. Contact of the core developers can be seen in [AUTHORS](./AUTHORS.md).
 
+## Hacktoberfest2021
+We will be participating in Hacktoberfest 2021! For instructions join our [Slack Channel](https://join.slack.com/t/ssoc2021/shared_invite/zt-winj985x-rOLZx~Yl239qNVnImZKfNw) here! Look at the contribution guidelines for starters!
+
 ## Structure of the project
 When complete, this project will have Python implementations for all the pseudocode algorithms in the book, as well as tests and examples of use. You can check the exact repository structure here [Repository Structure Docs](./REPO_STRUCTURE.md).
 The overall idea is to let the user read the algorithm and understand the attack in the `code-soup/ch{ch_num}/models/{topic}.py` and the demonstration in the tutorial.
