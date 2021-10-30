@@ -42,3 +42,6 @@ class Logger(object):
 
     def log_epoch_loss(self, epoch, total_epochs, loss):
         self.logger.info(f"Epoch: [{epoch}/{total_epochs}]\tLoss: {loss}")
+
+    def log_epoch_acc(self, epoch, total_epochs, acc):
+        self.logger.info(f"Epoch: [{epoch}/{total_epochs}]\tAccuracy: {acc}")
