@@ -39,3 +39,6 @@ class Logger(object):
     def critical(self, message):
         """Log critical message"""
         self.logger.critical(message)
+
+    def log_epoch_loss(self, epoch, total_epochs, loss):
+        self.logger.info(f"Epoch: [{epoch}/{total_epochs}]\tLoss: {loss}")
