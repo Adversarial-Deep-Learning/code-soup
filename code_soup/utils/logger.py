@@ -2,7 +2,7 @@ import logging
 import sys
 
 
-class Logger(object):
+class Logger(object): # pragma: no cover
     def __init__(self, log_level=logging.DEBUG):
         self.logger = logging.getLogger()
 
