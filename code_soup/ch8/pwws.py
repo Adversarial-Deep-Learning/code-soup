@@ -3,17 +3,22 @@
 from typing import List, Optional
 import numpy as np
 
-from code.soup.common.text.utils.classification_model_wrappers import Classifier
 from code_soup.common.text.utils.exceptions import WordNotInDictionaryException
 from code_soup.common.text.utils.misc import ENGLISH_FILTER_WORDS
 from code_soup.common.text.utils.tokenizer import Tokenizer, get_default_tokenizer
 from code_soup.common.text.utils.word_substitute import WordNetSubstitute
 
 
+def check(prediction, target, targeted):
+    if targeted:
+        return prediction == target
+    else:
+        return prediction != target
+
+
 class PWWSAttacker:
 
     def __init__(self,
-            victim : Classifier,
             tokenizer : Optional[Tokenizer] = None,
             token_unk : str = "<UNK>",
         ):
@@ -40,7 +45,7 @@ class PWWSAttacker:
         self.token_unk = token_unk
         self.filter_words = set(ENGLISH_FILTER_WORDS)
         
-    def attack(self, victim: Classifier, sentence : str, goal : ClassifierGoal):
+    def attack(self, victim: Classifier, sentence : str, target=0, targeted=True):
         x_orig = sentence.lower()
 
 
@@ -48,11 +53,11 @@ class PWWSAttacker:
         poss =  list(map(lambda x: x[1], x_orig)) 
         x_orig =  list(map(lambda x: x[0], x_orig))
 
-        S = self.get_saliency(victim, x_orig, goal) # (len(sent), )
+        S = self.get_saliency(victim, x_orig, target, targeted) # (len(sent), )
         S_softmax = np.exp(S - S.max())
         S_softmax = S_softmax / S_softmax.sum()
 
-        w_star = [ self.get_wstar(victim, x_orig, i, poss[i], goal) for i in range(len(x_orig)) ]  # (len(sent), )
+        w_star = [ self.get_wstar(victim, x_orig, i, poss[i], target, targeted) for i in range(len(x_orig)) ]  # (len(sent), )
         H = [ (idx, w_star[idx][0], S_softmax[idx] * w_star[idx][1]) for idx in range(len(x_orig)) ]
 
         H = sorted(H, key=lambda x:-x[2])
@@ -65,13 +70,12 @@ class PWWSAttacker:
             
             curr_sent = self.tokenizer.detokenize(ret_sent)
             pred = victim.get_pred([curr_sent])[0]
-            if goal.check(curr_sent, pred):
+            if check(pred, target, targeted):
                 return curr_sent
         return None
 
 
-    
-    def get_saliency(self, clsf, sent, goal : ClassifierGoal):
+    def get_saliency(self, clsf, sent, target=0, targeted=True):
         """
         Get saliency scores for every score. Simply put, saliency score of a word is the degree of change in the
         output probability of the classifier if the word is set to unknown (out of vocabulary). See Section 3.2.2
@@ -80,7 +84,6 @@ class PWWSAttacker:
         Args:
             clsf (Classifier): A classifier that will be used to get the saliency scores.
             sent (list): List of tokens in a sentence.
-            goal: A classifier goal that will be used to check if the sentence is a valid one.
         """
         x_hat_raw = []
         for i in range(len(sent)):
@@ -90,14 +93,14 @@ class PWWSAttacker:
             x_i_hat = left + [self.token_unk] + right
             x_hat_raw.append(self.tokenizer.detokenize(x_i_hat))
         x_hat_raw.append(self.tokenizer.detokenize(sent))
-        res = clsf.get_prob(x_hat_raw)[:, goal.target]
-        if not goal.targeted:
+        res = clsf.get_prob(x_hat_raw)[:, target]
+        if not targeted:
             res = res[-1] - res[:-1]
         else:
             res = res[:-1] - res[-1]
         return res
 
-    def get_wstar(self, clsf, sent, idx, pos, goal : ClassifierGoal):
+    def get_wstar(self, clsf, sent, idx, pos, target=0, targeted=True):
         word = sent[idx]
         try:
             rep_words = list(map(lambda x:x[0], self.substitute(word, pos)))
@@ -111,10 +114,10 @@ class PWWSAttacker:
             new_sent = sent[:idx] + [rw] + sent[idx + 1:]
             sents.append(self.tokenizer.detokenize(new_sent))
         sents.append(self.tokenizer.detokenize(sent))
-        res = clsf.get_prob(sents)[:, goal.target]
+        res = clsf.get_prob(sents)[:, target]
         prob_orig = res[-1]
         res = res[:-1]
-        if goal.targeted:
+        if targeted:
             return (rep_words[ res.argmax() ],  res.max() - prob_orig )
         else:
             return (rep_words[ res.argmin() ],  prob_orig - res.min() )
