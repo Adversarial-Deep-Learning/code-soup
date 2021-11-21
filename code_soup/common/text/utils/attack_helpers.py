@@ -19,14 +19,12 @@ def __iter_dataset(dataset, metrics):
 
 def __iter_metrics(iterable_result, metrics):
     for data, result in iterable_result:
-        adversarial_sample, attack_time, invoke_times = result
+        adversarial_sample = result
         ret = {
             "data": data,
             "success": adversarial_sample is not None,
             "result": adversarial_sample,
             "metrics": {
-                "Running Time": attack_time,
-                "Victim Model Queries": invoke_times,
                 ** __measure(data, adversarial_sample, metrics)
             }
         }
@@ -36,6 +34,6 @@ def __iter_metrics(iterable_result, metrics):
 def attack_process(attacker, victim, dataset, metrics):
     def result_iter():
         for data in __iter_dataset(dataset, metrics):
-            yield attacker.attack(victim, data)
+            yield attacker(victim, data)
     for ret in __iter_metrics(zip(dataset, result_iter()), metrics):
         yield ret

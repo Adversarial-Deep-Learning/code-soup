@@ -3,6 +3,8 @@ from typing import List, Optional, Tuple
 
 from code_soup.common.text.utils.exceptions import UnknownPOSException, WordNotInDictionaryException
 
+import nltk
+nltk.download('wordnet')
 
 POS_LIST = ["adv", "adj", "noun", "verb", "other"]
 

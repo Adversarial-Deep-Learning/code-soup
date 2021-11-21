@@ -15,8 +15,6 @@ class AttackMetric(object):
         return
 
 class Levenshtein(AttackMetric):
-    
-    NAME = "Levenshtein Edit Distance"
 
     def __init__(self, tokenizer : Tokenizer) -> None:
         """
@@ -24,6 +22,7 @@ class Levenshtein(AttackMetric):
             tokenizer: A tokenizer that will be used in this metric. Must be an instance of :py:class:`.Tokenizer`
         """
         self.tokenizer = tokenizer
+        self.name = "Levenshtein Edit Distance"
         
     def calc_score(self, a : List[str], b : List[str]) -> int:
         """

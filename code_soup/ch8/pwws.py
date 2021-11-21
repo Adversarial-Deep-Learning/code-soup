@@ -1,4 +1,8 @@
 """PWWS Attack implementation. The code has been adapted from https://github.com/thunlp/OpenAttack/blob/master/OpenAttack/attackers/pwws/__init__.py."""
+
+
+import sys
+sys.path.append("./")
 import datasets
 
 from typing import Any, Optional
@@ -14,7 +18,6 @@ from code_soup.common.text.utils.tokenizer import Tokenizer, PunctTokenizer
 from code_soup.common.text.utils.word_substitute import WordNetSubstitute
 from code_soup.common.text.utils.visualizer import visualizer
 
-import sys
 import transformers
 
 def check(prediction, target, targeted):
@@ -150,50 +153,54 @@ class PWWSAttacker:
 
 def main():
     def_tokenizer = PunctTokenizer()
-    path = "BERT.SST" # change path
+    path = "gchhablani/bert-base-cased-finetuned-sst2" # change path
     attacker = PWWSAttacker()
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(path)
     model = transformers.AutoModelForSequenceClassification.from_pretrained(path, num_labels=2, output_hidden_states=False)
     victim = transformers_classifier.TransformersClassifier(model, tokenizer, model.bert.embeddings.word_embeddings)
 
-    dataset = datasets.load_dataset("sst", split="train[:100]").map(function=dataset_mapping)
+    dataset = datasets.load_dataset("sst", split="train[:10]").map(function=dataset_mapping)
     metrics = [Levenshtein(def_tokenizer)]
 
     result_iterator = attack_process(attacker, victim, dataset, metrics)
 
-    total_result = {}
-    total_result_cnt = {}
     total_inst = 0
     success_inst = 0
 
     for i, res in enumerate(result_iterator):
-        total_inst += 1
-        success_inst += int(res["success"])
+        try:
+            total_inst += 1
+            success_inst += int(res["success"])
 
-        x_orig = res["data"]["x"]
-        x_adv = res["result"]
+            x_orig = res["data"]["x"]
+            x_adv = res["result"]
 
-        probs = victim.get_prob([x_orig, x_adv])
-        y_orig_prob = probs[0]
-        y_adv_prob = probs[1]
+            probs = victim.get_prob([x_orig, x_adv])
+            y_orig_prob = probs[0]
+            y_adv_prob = probs[1]
 
-        preds = victim.get_pred([x_orig, x_adv])                        
-        y_orig_preds = int(preds[0])
-        y_adv_preds = int(preds[1])
+            preds = victim.get_pred([x_orig, x_adv])                        
+            y_orig_preds = int(preds[0])
+            y_adv_preds = int(preds[1])
 
-        print("======================================================")
-        print(f"{i}th sample")
-        print("Original: ")
-        print(f"TEXT: {x_orig}")
-        print(f"Probabilities: {y_orig_prob}")
-        print(f"Predictions: {y_orig_preds}")
-        
-        print("Adversarial: ")
-        print(f"TEXT: {x_adv}")
-        print(f"Probabilities: {y_adv_prob}")
-        print(f"Predictions: {y_adv_preds}")
-        
-        print("\nMetrics: ")
-        print(res["metrics"])
-        print("======================================================")
+            print("======================================================")
+            print(f"{i}th sample")
+            print("Original: ")
+            print(f"TEXT: {x_orig}")
+            print(f"Probabilities: {y_orig_prob}")
+            print(f"Predictions: {y_orig_preds}")
+            
+            print("Adversarial: ")
+            print(f"TEXT: {x_adv}")
+            print(f"Probabilities: {y_adv_prob}")
+            print(f"Predictions: {y_adv_preds}")
+            
+            print("\nMetrics: ")
+            print(res["metrics"])
+            print("======================================================")
+        except Exception as e:
+            print(e)
+
+if __name__ == "__main__":
+    main()

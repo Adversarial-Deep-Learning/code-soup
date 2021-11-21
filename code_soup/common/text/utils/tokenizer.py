@@ -2,10 +2,14 @@
 
 import transformers
 
+import nltk
 from nltk.tag.perceptron import PerceptronTagger
 from nltk.tokenize import sent_tokenize, WordPunctTokenizer
 from typing import List, Tuple, Union
 
+
+nltk.download('averaged_perceptron_tagger')
+nltk.download('punkt')
 
 class Tokenizer:
     """
