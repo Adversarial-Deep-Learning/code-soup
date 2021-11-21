@@ -1,13 +1,21 @@
 """PWWS Attack implementation. The code has been adapted from https://github.com/thunlp/OpenAttack/blob/master/OpenAttack/attackers/pwws/__init__.py."""
+import datasets
 
-from typing import List, Optional
+from typing import Any, Optional
 import numpy as np
 
+from code_soup.common.text.utils.metrics import *
+from code_soup.common.text.utils.attack_helpers import *
+from code_soup.common.text.datasets.utils import dataset_mapping
+from code_soup.common.text.models import classifier, transformers_classifier
 from code_soup.common.text.utils.exceptions import WordNotInDictionaryException
 from code_soup.common.text.utils.misc import ENGLISH_FILTER_WORDS
-from code_soup.common.text.utils.tokenizer import Tokenizer, get_default_tokenizer
+from code_soup.common.text.utils.tokenizer import Tokenizer, PunctTokenizer
 from code_soup.common.text.utils.word_substitute import WordNetSubstitute
+from code_soup.common.text.utils.visualizer import visualizer
 
+import sys
+import transformers
 
 def check(prediction, target, targeted):
     if targeted:
@@ -39,13 +47,30 @@ class PWWSAttacker:
         self.substitute = WordNetSubstitute()
 
         if tokenizer is None:
-            tokenizer = get_default_tokenizer(self.__lang_tag)
+            tokenizer = PunctTokenizer()
         self.tokenizer = tokenizer
 
         self.token_unk = token_unk
         self.filter_words = set(ENGLISH_FILTER_WORDS)
+
+    def __call__(self, victim: classifier.Classifier, input_: Any):
+
+        if "target" in input_:
+            target = input_["target"]
+            targeted = True
+        else:
+            target = victim.get_pred([ input_["x"] ])[0]
+            targeted = False
         
-    def attack(self, victim: Classifier, sentence : str, target=0, targeted=True):
+        adversarial_sample = self.attack(victim, input_["x"], target, targeted)
+
+        if adversarial_sample is not None:
+            y_adv = victim.get_pred([ adversarial_sample ])[0]
+            if not check(y_adv, target, targeted):
+                raise RuntimeError("Check attacker result failed: result ([%d] %s) expect (%s%d)" % ( y_adv, adversarial_sample, "" if targeted else "not ", target))
+        return adversarial_sample
+        
+    def attack(self, victim: classifier.Classifier, sentence : str, target=0, targeted=True):
         x_orig = sentence.lower()
 
 
@@ -121,3 +146,54 @@ class PWWSAttacker:
             return (rep_words[ res.argmax() ],  res.max() - prob_orig )
         else:
             return (rep_words[ res.argmin() ],  prob_orig - res.min() )
+
+
+def main():
+    def_tokenizer = PunctTokenizer()
+    path = "BERT.SST" # change path
+    attacker = PWWSAttacker()
+
+    tokenizer = transformers.AutoTokenizer.from_pretrained(path)
+    model = transformers.AutoModelForSequenceClassification.from_pretrained(path, num_labels=2, output_hidden_states=False)
+    victim = transformers_classifier.TransformersClassifier(model, tokenizer, model.bert.embeddings.word_embeddings)
+
+    dataset = datasets.load_dataset("sst", split="train[:100]").map(function=dataset_mapping)
+    metrics = [Levenshtein(def_tokenizer)]
+
+    result_iterator = attack_process(attacker, victim, dataset, metrics)
+
+    total_result = {}
+    total_result_cnt = {}
+    total_inst = 0
+    success_inst = 0
+
+    for i, res in enumerate(result_iterator):
+        total_inst += 1
+        success_inst += int(res["success"])
+
+        x_orig = res["data"]["x"]
+        x_adv = res["result"]
+
+        probs = victim.get_prob([x_orig, x_adv])
+        y_orig_prob = probs[0]
+        y_adv_prob = probs[1]
+
+        preds = victim.get_pred([x_orig, x_adv])                        
+        y_orig_preds = int(preds[0])
+        y_adv_preds = int(preds[1])
+
+        print("======================================================")
+        print(f"{i}th sample")
+        print("Original: ")
+        print(f"TEXT: {x_orig}")
+        print(f"Probabilities: {y_orig_prob}")
+        print(f"Predictions: {y_orig_preds}")
+        
+        print("Adversarial: ")
+        print(f"TEXT: {x_adv}")
+        print(f"Probabilities: {y_adv_prob}")
+        print(f"Predictions: {y_adv_preds}")
+        
+        print("\nMetrics: ")
+        print(res["metrics"])
+        print("======================================================")
