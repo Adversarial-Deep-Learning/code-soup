@@ -80,7 +80,7 @@ class PunctTokenizer(Tokenizer):
         if not pos_tagging:
             return tokens
         ret = []
-        for word, pos in self.pos_tagger(tokens):
+        for word, pos in self.pos_tagger.tag(tokens):
             if pos[:2] in _POS_MAPPING:
                 mapped_pos = _POS_MAPPING[pos[:2]]
             else:
