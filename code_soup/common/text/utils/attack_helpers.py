@@ -1,3 +1,4 @@
+"""Utility functions for text-based attacks. Adapted from https://github.com/thunlp/OpenAttack."""
 def __measure(data, adversarial_sample, metrics):
     ret = {}
     for it in metrics:

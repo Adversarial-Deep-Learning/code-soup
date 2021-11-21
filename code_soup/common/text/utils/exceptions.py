@@ -1,3 +1,4 @@
+"""Exceptions for text-based attacks."""
 class AttackException(Exception):
     pass
 

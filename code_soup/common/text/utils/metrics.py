@@ -1,3 +1,4 @@
+"""Various metrics for texts. Adapted from https://github.com/thunlp/OpenAttack/tree/master/OpenAttack/metric/algorithms."""
 from typing import List
 from code_soup.common.text.utils.tokenizer import Tokenizer
 

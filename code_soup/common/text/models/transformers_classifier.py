@@ -1,3 +1,4 @@
+"""Class for transformers=based classifiers. Adapted from https://github.com/thunlp/OpenAttack/blob/master/OpenAttack/victim/classifiers/transformers.py"""
 import numpy as np
 from code_soup.common.text.models.classifier import Classifier
 from code_soup.common.text.utils.tokenizer import TransformersTokenizer

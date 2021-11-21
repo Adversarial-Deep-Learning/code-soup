@@ -1,4 +1,3 @@
-
 """English filter words (stopwords, etc.). Obtained from https://github.com/thunlp/OpenAttack/blob/master/OpenAttack/attack_assist/filter_words/english.py."""
 ENGLISH_FILTER_WORDS = [
     'a', 'about', 'above', 'across', 'after', 'afterwards', 'again', 'against', 'ain', 'all', 'almost',
