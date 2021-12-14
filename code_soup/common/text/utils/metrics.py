@@ -1,10 +1,10 @@
-"""Various metrics for texts. Adapted from https://github.com/thunlp/OpenAttack/tree/master/OpenAttack/metric/algorithms."""
+"""Various metrics for text. Adapted from https://github.com/thunlp/OpenAttack/tree/master/OpenAttack/metric/algorithms."""
 from typing import List
 from code_soup.common.text.utils.tokenizer import Tokenizer
 
 import torch
 
-class AttackMetric(object):
+class AttackMetric(object): # no pragma: no cover
     """
     Base class of all metrics.
     """

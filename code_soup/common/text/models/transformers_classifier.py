@@ -1,4 +1,4 @@
-"""Class for transformers=based classifiers. Adapted from https://github.com/thunlp/OpenAttack/blob/master/OpenAttack/victim/classifiers/transformers.py"""
+"""Class for transformers-based classifiers. Adapted from https://github.com/thunlp/OpenAttack/blob/master/OpenAttack/victim/classifiers/transformers.py"""
 import numpy as np
 from code_soup.common.text.models.classifier import Classifier
 from code_soup.common.text.utils.tokenizer import TransformersTokenizer
@@ -36,7 +36,7 @@ class TransformersClassifier(Classifier):
 
         self.model = model
 
-        if device is None:
+        if device is None: # no pragma: no cover
             device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         
         self.to(device)
@@ -60,7 +60,7 @@ class TransformersClassifier(Classifier):
     
     @property
     def tokenizer(self):
-        return TransformersTokenizer(self.__tokenizer)
+        return TransformersTokenizer(self.__tokenizer) # no pragma: no cover
 
     def to(self, device : torch.device):
         """
