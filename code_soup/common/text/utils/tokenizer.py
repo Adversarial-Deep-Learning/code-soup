@@ -103,7 +103,7 @@ class TransformersTokenizer(Tokenizer):
         self.__tokenizer = tokenizer
 
     def do_tokenize(self, x, pos_tagging):
-        if pos_tagging:
+        if pos_tagging: # no pragma: no cover
             raise ValueError("`%s` does not support pos tagging" % self.__class__.__name__)
         return self.__tokenizer.tokenize(x)
     

@@ -1,7 +1,7 @@
 from typing import Dict
 
 
-class WordEmbedding:
+class WordEmbedding: # no pragma: no cover
     def __init__(self, word2id : Dict[str, int], embedding) -> None:
         self.word2id = word2id
         self.embedding = embedding

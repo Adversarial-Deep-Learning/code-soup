@@ -313,10 +313,11 @@ class PWWSAttacker:
             return (rep_words[ res.argmin() ],  prob_orig - res.min() )
 
 
+# Example
 def main():
     def_tokenizer = PunctTokenizer()
 
-    path = "gchhablani/bert-base-cased-finetuned-sst2" # change path
+    path = "gchhablani/bert-base-cased-finetuned-sst2"
 
     # define the attack
     attacker = PWWSAttacker()
