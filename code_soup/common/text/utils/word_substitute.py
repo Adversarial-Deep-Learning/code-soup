@@ -11,6 +11,7 @@ from code_soup.common.text.utils.exceptions import UnknownPOSException, WordNotI
 
 import nltk
 nltk.download('wordnet')
+nltk.download('omw-1.4')
 
 POS_LIST = ["adv", "adj", "noun", "verb", "other"]
 
