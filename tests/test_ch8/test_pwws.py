@@ -1,9 +1,8 @@
-import datasets
-import transformers
 import unittest
 
+import datasets
+import transformers
 from parameterized import parameterized_class
-
 
 from code_soup.ch8.pwws import PWWSAttacker
 from code_soup.common.text.datasets.utils import dataset_mapping
@@ -20,11 +19,11 @@ class TestPWWSAttacker(unittest.TestCase):
     """
     pwws.PWWSAttacker() test cases
     """
+
     @classmethod
     def setUpClass(cls) -> None:
-        def_tokenizer = PunctTokenizer()
 
-        path = "gchhablani/bert-base-cased-finetuned-sst2"
+        path = "distilbert-base-uncased-finetuned-sst-2-english"
 
         # define the attack
         cls.attacker = PWWSAttacker()
@@ -32,13 +31,16 @@ class TestPWWSAttacker(unittest.TestCase):
         # define the victim model (classifier)
         tokenizer = transformers.AutoTokenizer.from_pretrained(path)
         model = transformers.AutoModelForSequenceClassification.from_pretrained(
-            path, num_labels=2, output_hidden_states=False)
-        cls.victim = transformers_classifier.TransformersClassifier(model, tokenizer,
-            model.bert.embeddings.word_embeddings)
+            path, num_labels=2, output_hidden_states=False
+        )
+        cls.victim = transformers_classifier.TransformersClassifier(
+            model, tokenizer, model.distilbert.embeddings.word_embeddings
+        )
 
         # load the dataset
-        cls.dataset = (datasets.load_dataset("sst", split="train[:2]").
-            map(function=dataset_mapping))
+        cls.dataset = datasets.load_dataset("sst", split="train[:2]").map(
+            function=dataset_mapping
+        )
 
     def test_output(cls):
         for sample in cls.dataset:

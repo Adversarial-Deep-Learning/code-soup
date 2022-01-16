@@ -4,36 +4,42 @@ sentence with its synonyms.
 Adapted from
 https://github.com/thunlp/OpenAttack/blob/master/OpenAttack/attack_assist/substitute/word/base.py.
 """
-from nltk.corpus import wordnet as nltk_wn
 from typing import List, Optional, Tuple
 
-from code_soup.common.text.utils.exceptions import UnknownPOSException, WordNotInDictionaryException
-
 import nltk
-nltk.download('wordnet')
-nltk.download('omw-1.4')
+from nltk.corpus import wordnet as nltk_wn
+
+from code_soup.common.text.utils.exceptions import (
+    UnknownPOSException,
+    WordNotInDictionaryException,
+)
+
+nltk.download("wordnet")
+nltk.download("omw-1.4")
 
 POS_LIST = ["adv", "adj", "noun", "verb", "other"]
 
 
 def prefilter(token, synonym):  # 预过滤（原词，一个候选词
-    if (len(synonym.split()) > 2 or (  # the synonym produced is a phrase
-            synonym == token) or (  # the pos of the token synonyms are different
-            token == 'be') or (
-            token == 'is') or (
-            token == 'are') or (
-            token == 'am')):  # token is be
+    if (
+        len(synonym.split()) > 2
+        or (synonym == token)  # the synonym produced is a phrase
+        or (token == "be")  # the pos of the token synonyms are different
+        or (token == "is")
+        or (token == "are")
+        or (token == "am")
+    ):  # token is be
         return False
     else:
         return True
 
 
 class WordSubstitute(object):
-    def __call__(self, word : str, pos : Optional[str] = None) -> List[Tuple[str, float]]:
+    def __call__(self, word: str, pos: Optional[str] = None) -> List[Tuple[str, float]]:
         """
         In WordSubstitute, we return a list of words that are semantically
         similar to the input word.
-        
+
         Args:
             word: A single word.
             pos: POS tag of input word. Must be one of the following:
@@ -48,7 +54,7 @@ class WordSubstitute(object):
             (distance is a number between 0 and 1, with smaller indicating more
              similarity).
         """
-        
+
         if pos is None:
             ret = {}
             for sub_pos in POS_LIST:
@@ -65,25 +71,24 @@ class WordSubstitute(object):
                 list_ret.append((word, sim))
             if len(list_ret) == 0:
                 raise WordNotInDictionaryException()
-            return sorted( list_ret, key=lambda x: -x[1] )
+            return sorted(list_ret, key=lambda x: -x[1])
         elif pos not in POS_LIST:
-            raise UnknownPOSException("Invalid `pos` %s (expect %s)" % (pos, POS_LIST) )
+            raise UnknownPOSException("Invalid `pos` %s (expect %s)" % (pos, POS_LIST))
         return self.substitute(word, pos)
-    
-    def substitute(self, word : str, pos : str) -> List[Tuple[str, float]]:
+
+    def substitute(self, word: str, pos: str) -> List[Tuple[str, float]]:
         raise NotImplementedError()
 
 
 class WordNetSubstitute(WordSubstitute):
-
     def __init__(self, k=50):
         """
         English word substitute based on WordNet. WordNet is used to find
-        synonyms (same named entity as the original word). 
+        synonyms (same named entity as the original word).
         See Section 3.2.1 of the PWWS paper to get a better idea of how this works.
         Args:
             k: Top-k results to return. If k is `None`, all results will be
-               returned. Default: 50   
+               returned. Default: 50
         """
 
         self.wn = nltk_wn
@@ -106,15 +111,10 @@ class WordNetSubstitute(WordSubstitute):
         Returns:
             synonyms ([str]): List of candidate replacements.
         """
-        token = word.replace('_', ' ').split()[0]
+        token = word.replace("_", " ").split()[0]
         if pos == "other":
             raise WordNotInDictionaryException()
-        pos_in_wordnet = {
-            "adv": "r",
-            "adj": "a",
-            "verb": "v",
-            "noun": "n"
-        }[pos]
+        pos_in_wordnet = {"adv": "r", "adj": "a", "verb": "v", "noun": "n"}[pos]
 
         # Find synonyms using WordNet which belong to the same named entity.
         # Example (wordnet_synonyms for word "new"):
@@ -149,5 +149,5 @@ class WordNetSubstitute(WordSubstitute):
         synonyms = [(syn, 1) for syn in synonyms]
 
         if self.k is not None and self.k > len(synonyms):
-            synonyms = synonyms[:self.k]
+            synonyms = synonyms[: self.k]
         return synonyms

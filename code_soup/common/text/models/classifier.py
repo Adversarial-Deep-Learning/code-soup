@@ -1,9 +1,10 @@
-import numpy as np
-
 from abc import ABC, abstractmethod
 from typing import List, Tuple
 
-class Classifier(ABC): # no pragma: no cover
+import numpy as np
+
+
+class Classifier(ABC):  # no pragma: no cover
     def __init__(self):
         pass
 

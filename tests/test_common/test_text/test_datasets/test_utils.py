@@ -1,21 +1,24 @@
 import unittest
 
-from code_soup.common.text.datasets.utils import dataset_mapping
 from parameterized import parameterized_class
+
+from code_soup.common.text.datasets.utils import dataset_mapping
+
 
 @parameterized_class(
     ("x", "expected_output"),
     [
-        ({"sentence": "Chuffed to bits!", "label": 0.598},
-         {"x": "Chuffed to bits!", "y": 1}),
-        ({"sentence": "Hello", "label": 0.342},
-         {"x": "Hello", "y": 0}),
+        (
+            {"sentence": "Chuffed to bits!", "label": 0.598},
+            {"x": "Chuffed to bits!", "y": 1},
+        ),
+        ({"sentence": "Hello", "label": 0.342}, {"x": "Hello", "y": 0}),
     ],
 )
 class TestTextDatasetUtilsDatasetMapping(unittest.TestCase):
     """
     Parameterized test cases for the common/text/datasets/utils/dataset_mapping
-    function.  
+    function.
 
     Args: ("x", "expected_output")
     """
