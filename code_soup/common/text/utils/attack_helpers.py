@@ -1,7 +1,7 @@
 """Utility functions for text-based attacks. Adapted from https://github.com/thunlp/OpenAttack."""
 
 
-def __measure(data, adversarial_sample, metrics):
+def __measure(data, adversarial_sample, metrics):  # no pragma: no cover
     ret = {}
     for it in metrics:
         value = it.after_attack(data, adversarial_sample)
@@ -10,7 +10,7 @@ def __measure(data, adversarial_sample, metrics):
     return ret
 
 
-def __iter_dataset(dataset, metrics):
+def __iter_dataset(dataset, metrics):  # no pragma: no cover
     for data in dataset:
         v = data
         for it in metrics:
@@ -20,7 +20,7 @@ def __iter_dataset(dataset, metrics):
         yield v
 
 
-def __iter_metrics(iterable_result, metrics):
+def __iter_metrics(iterable_result, metrics):  # no pragma: no cover
     for data, result in iterable_result:
         adversarial_sample = result
         ret = {
@@ -32,7 +32,7 @@ def __iter_metrics(iterable_result, metrics):
         yield ret
 
 
-def attack_process(attacker, victim, dataset, metrics):
+def attack_process(attacker, victim, dataset, metrics):  # no pragma: no cover
     def result_iter():
         for data in __iter_dataset(dataset, metrics):
             yield attacker(victim, data)

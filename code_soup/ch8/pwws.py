@@ -256,7 +256,15 @@ class PWWSAttacker:
             res = res[:-1] - res[-1]
         return res
 
-    def get_wstar(self, clsf, sent, idx, pos, target=0, targeted=True):
+    def get_wstar(
+        self,
+        clsf: classifier.Classifier,
+        sent: List[str],
+        idx: int,
+        pos: str,
+        target=0,
+        targeted=True,
+    ):
         """
         Given a word in a sentence, find the replacment word (from a list of
         candidate replacements) that maximises the difference in probabilities
